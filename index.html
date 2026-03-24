@@ -276,7 +276,9 @@ const SEED_PIVOT = {
   totals_target: {},
   capacity: {}
 };
-var PIVOT = JSON.parse(JSON.stringify(SEED_PIVOT));
+var saved = localStorage.getItem("PIVOT_DATA");
+
+var PIVOT = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(SEED_PIVOT));
 var MONTHS = PIVOT.months;
 var WCS = PIVOT.work_centers;
 var MONTH_LABELS = [];
@@ -744,6 +746,7 @@ function exportCSV() {
   var a = document.createElement('a'); a.href=url;
   a.download='WC_Capacity_Comparison_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click(); URL.revokeObjectURL(url);
+  localStorage.setItem("PIVOT_DATA", JSON.stringify(PIVOT));
   toast('CSV exported.','s');
 }
 
