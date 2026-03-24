@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Current Load & Capacity — ProShop Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#e8600a;--accent-dim:#b84d08;--accent-glow:rgba(232,96,10,0.15);
+  --bg:#111820;--panel:#1c2530;--panel2:#222e3c;--panel3:#19222d;
+  --border:#2e3d50;--border-light:#3a4f66;
+  --text:#d4dde8;--text-dim:#7a8fa6;--text-bright:#eaf1f8;
+  --success:#27c97a;--warn:#f0b429;--danger:#e05050;--info:#4da9e8;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow','Segoe UI',sans-serif;font-size:13px;min-height:100vh}
+.hdr{background:var(--panel);border-bottom:2px solid var(--accent);padding:0 18px;display:flex;align-items:stretch;position:sticky;top:0;z-index:100;height:48px}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-bright)}
+.logo span{color:var(--accent)}
+.hdiv{width:1px;height:26px;background:var(--border)}
+.page-title{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-bright)}
+.page-title span{color:var(--accent)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;font-size:11px;color:var(--text-dim)}
+.tabs{display:flex;align-items:stretch;border-bottom:1px solid var(--border);background:var(--panel2);padding:0 18px}
+.tab-btn{padding:0 18px;height:38px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tab-btn:hover{color:var(--text);border-bottom-color:var(--border-light)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.toolbar{background:var(--panel2);border-bottom:1px solid var(--border);padding:7px 18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;border:1px solid var(--border-light);background:var(--panel);color:var(--text);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .13s;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-dim);border-color:var(--accent-dim);color:#fff}
+.btn-success{border-color:rgba(39,201,122,.4);color:var(--success)}
+.btn-success:hover{border-color:var(--success);background:rgba(39,201,122,.1)}
+.btn.active-btn{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.35;pointer-events:none}
+select.fs{background:var(--panel);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:11px;padding:4px 8px;outline:none;cursor:pointer;transition:border-color .13s}
+select.fs:focus{border-color:var(--accent)}
+.tsep{width:1px;height:22px;background:var(--border);margin:0 2px}
+.tlabel{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+
+/* KPIs */
+.kpi-row{display:flex;gap:8px;padding:12px 18px;flex-wrap:wrap}
+.kpi{padding:8px 14px;background:var(--panel);border:1px solid var(--border);border-radius:4px;display:flex;flex-direction:column;gap:2px;min-width:110px}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+.kpi-val{font-size:17px;font-weight:700;font-family:var(--mono);color:var(--text-bright)}
+.kpi-val.acc{color:var(--accent)}
+.kpi-val.ok{color:var(--success)}
+.kpi-val.warn{color:var(--warn)}
+.kpi-val.danger{color:var(--danger)}
+
+/* CHARTS GRID */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 18px}
+.chart-wrap{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px}
+.chart-wrap.full{grid-column:1/-1}
+.chart-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.chart-title .badge{font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700;letter-spacing:.05em}
+.badge-ok{background:rgba(39,201,122,.12);color:var(--success);border:1px solid rgba(39,201,122,.3)}
+.badge-warn{background:rgba(240,180,41,.12);color:var(--warn);border:1px solid rgba(240,180,41,.3)}
+.badge-danger{background:rgba(224,80,80,.12);color:var(--danger);border:1px solid rgba(224,80,80,.3)}
+.chart-inner{height:280px;position:relative}
+.chart-inner.tall{height:340px}
+
+/* TABLE */
+.table-section{padding:0 18px 24px}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 6px;flex-wrap:wrap;gap:8px}
+.tbl-header-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
+.legend-item{display:flex;align-items:center;gap:4px}
+.ld{width:10px;height:10px;border-radius:2px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{background:var(--panel2);border-bottom:2px solid var(--border)}
+th{padding:6px 8px;text-align:right;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);white-space:nowrap;position:sticky;top:0;background:var(--panel2);z-index:10}
+th:first-child{text-align:left;min-width:185px;position:sticky;left:0;top:0;z-index:20;background:var(--panel2)}
+th.group-hdr{background:var(--panel3);color:var(--info);font-size:9px;letter-spacing:.1em}
+tbody tr{border-bottom:1px solid rgba(46,61,80,.5);transition:background .1s}
+tbody tr:hover{background:rgba(232,96,10,0.04)}
+tbody tr.tot-row{background:var(--panel2);border-top:2px solid var(--accent)}
+tbody tr.tot-row td{font-weight:700;color:var(--text-bright);font-family:var(--mono)}
+td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:11px;white-space:nowrap;color:var(--text-dim)}
+td:first-child{text-align:left;font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--text-bright);position:sticky;left:0;background:var(--bg);z-index:5}
+tbody tr:hover td:first-child{background:rgba(30,38,50,.95)}
+tbody tr.tot-row td:first-child{background:var(--panel2);color:var(--accent)}
+/* utilization cell colors */
+td.u-ok{color:var(--success)}
+td.u-warn{color:var(--warn);font-weight:700}
+td.u-over{color:var(--danger);font-weight:700;background:rgba(224,80,80,.08)}
+td.u-empty{color:rgba(58,79,102,0.4)}
+td.tgt-cell{color:var(--text)}
+td.cap-cell{color:var(--info)}
+td.row-total{color:var(--accent);font-weight:700}
+
+/* IMPORT TAB */
+.import-section{padding:20px 18px}
+.import-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:960px}
+.import-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:20px}
+.import-card-title{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.import-card-title svg{color:var(--accent)}
+.dz{border:2px dashed var(--border-light);border-radius:6px;background:var(--panel2);padding:28px 20px;text-align:center;cursor:pointer;transition:all .18s;position:relative;margin-bottom:12px}
+.dz:hover,.dz.over{border-color:var(--accent);background:var(--accent-glow)}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-title{font-size:13px;font-weight:700;color:var(--text-bright);margin-bottom:4px}
+.dz-sub{font-size:11px;color:var(--text-dim);margin-bottom:8px}
+.dz-hint{font-size:10px;color:var(--text-dim);font-family:var(--mono);background:var(--bg);display:inline-block;padding:3px 10px;border-radius:3px;border:1px solid var(--border)}
+.import-preview{background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:10px 14px;display:none;margin-bottom:12px}
+.import-preview.open{display:block}
+.ip-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ip-stat{display:flex;flex-direction:column;gap:1px}
+.ip-stat-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+.ip-stat-val{font-size:14px;font-weight:700;color:var(--text-bright)}
+.import-mode-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.import-mode-row label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+.import-log{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text-dim);max-height:140px;overflow-y:auto;margin-top:12px;line-height:1.7}
+.import-log .log-ok{color:var(--success)}.import-log .log-warn{color:var(--warn)}.import-log .log-info{color:var(--info)}
+.stat-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.stat-item:last-child{border-bottom:none}
+.stat-label{font-size:12px;color:var(--text-dim)}
+.stat-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text-bright)}
+.stat-val.acc{color:var(--accent)}
+.badge-unsaved{background:rgba(240,180,41,.12);color:var(--warn);border:1px solid rgba(240,180,41,.3);font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:3px;text-transform:uppercase;display:none}
+.badge-unsaved.on{display:inline-block}
+.tc{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:7px;z-index:9999}
+.toast{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;padding:9px 14px;font-size:12px;color:var(--text-bright);min-width:220px;animation:tin .18s ease;box-shadow:0 4px 18px rgba(0,0,0,.45)}
+.toast.s{border-left-color:var(--success)}.toast.w{border-left-color:var(--warn)}.toast.d{border-left-color:var(--danger)}
+@keyframes tin{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="logo">ADVANCED <span>/</span> ProShop Hub</div>
+    <div class="hdiv"></div>
+    <div class="page-title">Advanced <span>Current Load</span> &amp; Capacity</div>
+  </div>
+  <div class="hdr-right">
+    22 Work Centers &nbsp;&#183;&nbsp; Feb 2026 &ndash; Nov 2027 &nbsp;&nbsp;
+    <span class="badge-unsaved" id="unsavedBadge">Unsaved</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tabBtnDashboard" onclick="switchTab('dashboard')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Load &amp; Capacity
+  </button>
+  <button class="tab-btn" id="tabBtnImport" onclick="switchTab('import')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Import
+  </button>
+</div>
+
+<!-- DASHBOARD TAB -->
+<div class="tab-panel active" id="panelDashboard">
+
+  <div class="toolbar">
+    <span class="tlabel">Chart:</span>
+    <button class="btn active-btn" id="btnBar" onclick="setChart('bar')">&#9646; Stacked Bar</button>
+    <button class="btn" id="btnLine" onclick="setChart('line')">&#10230; Line</button>
+    <div class="tsep"></div>
+    <span class="tlabel">Work Center:</span>
+    <select class="fs" id="wcFilter" onchange="filterWC()" style="max-width:210px">
+      <option value="all">All Work Centers</option>
+    </select>
+    <div class="tsep"></div>
+    <button class="btn btn-primary" onclick="exportCSV()">&#8595; Export CSV</button>
+  </div>
+
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid" id="chartsGrid">
+    <div class="chart-wrap full">
+      <div class="chart-title">
+        <span>Total Hours Loaded vs Effective Capacity &mdash; Monthly</span>
+        <span class="badge badge-ok" id="overallBadge">Loading...</span>
+      </div>
+      <div class="chart-inner tall"><canvas id="mainChart"></canvas></div>
+    </div>
+    <div class="chart-wrap" id="utilWrap" style="display:none">
+      <div class="chart-title"><span>Utilization % (Target Hrs / Effective Capacity)</span></div>
+      <div class="chart-inner"><canvas id="utilChart"></canvas></div>
+    </div>
+    <div class="chart-wrap" id="gapWrap" style="display:none">
+      <div class="chart-title"><span>Available Remaining Hours (Effective Cap &minus; Total Hrs)</span></div>
+      <div class="chart-inner"><canvas id="gapChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- PIVOT TABLE -->
+  <div class="table-section">
+    <div class="tbl-header">
+      <span class="tbl-header-title">Monthly Breakdown — Target Hours vs Available Capacity</span>
+      <div class="legend">
+        <span class="legend-item"><span class="ld" style="background:rgba(77,169,232,.15)"></span>Effective Capacity</span>
+        <span class="legend-item"><span class="ld" style="background:rgba(167,139,250,.15)"></span>Theoretical Capacity</span>
+        <span class="legend-item"><span class="ld" style="background:rgba(232,96,10,.22)"></span>Target Hours</span>
+        <span class="legend-item" style="color:var(--success)">&#9632; &lt;80% util</span>
+        <span class="legend-item" style="color:var(--warn)">&#9632; 80–100%</span>
+        <span class="legend-item" style="color:var(--danger)">&#9632; &gt;100% OVER</span>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="pivotTable">
+        <thead id="pivotHead"></thead>
+        <tbody id="pivotBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end dashboard panel -->
+
+<!-- IMPORT TAB -->
+<div class="tab-panel" id="panelImport">
+  <div class="import-section">
+    <div class="import-grid">
+      <div class="import-card">
+        <div class="import-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import New CSV Export
+        </div>
+        <div class="dz" id="dz" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+          <input type="file" accept=".csv" onchange="fileSelected(event)">
+          <div style="color:var(--accent);margin-bottom:8px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+          <div class="dz-title">Drop CSV here or click to browse</div>
+          <div class="dz-sub">Auto-matched from ProShop weekly export</div>
+          <div class="dz-hint">Work Order # &middot; Work Center &middot; WO Must Leave By &middot; Set-up Time (Hrs) &middot; Hours:Current Target</div>
+        </div>
+        <div class="import-preview" id="importPreview">
+          <div class="ip-row">
+            <div class="ip-stat"><span class="ip-stat-label">File</span><span class="ip-stat-val" id="ipFile">-</span></div>
+            <div class="ip-stat"><span class="ip-stat-label">Rows</span><span class="ip-stat-val" id="ipRows">0</span></div>
+            <div class="ip-stat"><span class="ip-stat-label">Cols</span><span class="ip-stat-val" id="ipCols">0/0</span></div>
+            <div class="ip-stat"><span class="ip-stat-label">New WCs</span><span class="ip-stat-val" id="ipNewWC">0</span></div>
+          </div>
+          <div class="import-mode-row">
+            <label>Mode:</label>
+            <select class="fs" id="impMode">
+              <option value="replace">Replace all data</option>
+              <option value="append">Append to existing</option>
+              <option value="merge">Merge by WO #</option>
+            </select>
+            <button class="btn btn-success" onclick="confirmImport()">&#10003; Confirm &amp; Refresh</button>
+            <button class="btn" onclick="cancelImport()">Cancel</button>
+          </div>
+        </div>
+        <div class="import-log" id="importLog"><span class="log-info">Ready. Drop a CSV to preview.</span></div>
+      </div>
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:20px">
+        <div class="import-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Current Dataset Status
+        </div>
+        <div id="statusItems"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tc" id="tc"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const SEED_PIVOT = {"work_centers": ["C.R. ONSRUD 5 AXIS-506", "Fastems ROBO FMS One-510", "HAAS UMC-750 5 AXIS (1)-504", "HAAS UMC-750 5 AXIS (2)-505", "HYUNDAI L 2100SY-105", "Integrex 200-3ST-201", "Komo VR510 CNC Router-306", "Mazak - HCN-4000 II-401", "Mazak - HCN-4000 III-402", "Mazak FJV-250-304", "Mazak Integrex 100-4ST-202", "Mazak QTN-250 MSY-101", "Mazak Quick Turn 10-104", "Mazak Quick Turn 250 II-102", "Mazak Quick Turn 6T-103", "Mazak VCN510CKY (1)-301", "Mazak VCN510CKY (2)-302", "Mazak VCN510CKY w 4AX Rotary-303", "Okuma - M460V-5AX-503", "Okuma - M460V-5AX-508", "Okuma - M460V-5AX-509", "Okuma- MULTUS U3000- (205)"], "months": ["2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12", "2027-01", "2027-02", "2027-03", "2027-04", "2027-05", "2027-06", "2027-07", "2027-08", "2027-09", "2027-10", "2027-11"], "pivot": {"C.R. ONSRUD 5 AXIS-506": {"2026-02": 0.0, "2026-03": 128.8, "2026-04": 35.33, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Fastems ROBO FMS One-510": {"2026-02": 2.42, "2026-03": 325.37, "2026-04": 673.32, "2026-05": 446.12, "2026-06": 415.55, "2026-07": 261.99, "2026-08": 534.89, "2026-09": 129.07, "2026-10": 240.5, "2026-11": 191.06, "2026-12": 97.33, "2027-01": 0.0, "2027-02": 136.98, "2027-03": 73.37, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HAAS UMC-750 5 AXIS (1)-504": {"2026-02": 61.83, "2026-03": 180.06, "2026-04": 279.16, "2026-05": 24.25, "2026-06": 403.25, "2026-07": 210.92, "2026-08": 235.17, "2026-09": 97.0, "2026-10": 24.25, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HAAS UMC-750 5 AXIS (2)-505": {"2026-02": 186.67, "2026-03": 186.67, "2026-04": 0.0, "2026-05": 373.34, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 186.67, "2026-09": 1120.02, "2026-10": 186.67, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HYUNDAI L 2100SY-105": {"2026-02": 0.0, "2026-03": 40.5, "2026-04": 56.27, "2026-05": 11.33, "2026-06": 30.47, "2026-07": 56.02, "2026-08": 31.28, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Integrex 200-3ST-201": {"2026-02": 0.0, "2026-03": 35.92, "2026-04": 51.25, "2026-05": 118.0, "2026-06": 0.0, "2026-07": 156.0, "2026-08": 126.62, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Komo VR510 CNC Router-306": {"2026-02": 0.0, "2026-03": 823.84, "2026-04": 12.04, "2026-05": 0.0, "2026-06": 11.42, "2026-07": 1.63, "2026-08": 32.78, "2026-09": 0.0, "2026-10": 32.78, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak - HCN-4000 II-401": {"2026-02": 0.0, "2026-03": 126.75, "2026-04": 246.85, "2026-05": 248.48, "2026-06": 346.5, "2026-07": 180.49, "2026-08": 180.49, "2026-09": 180.49, "2026-10": 419.75, "2026-11": 73.01, "2026-12": 73.01, "2027-01": 73.01, "2027-02": 73.01, "2027-03": 73.01, "2027-04": 73.01, "2027-05": 73.01, "2027-06": 73.01, "2027-07": 73.01, "2027-08": 73.01, "2027-09": 73.01, "2027-10": 0.0, "2027-11": 0.0}, "Mazak - HCN-4000 III-402": {"2026-02": 0.0, "2026-03": 41.77, "2026-04": 123.57, "2026-05": 22.46, "2026-06": 123.08, "2026-07": 74.67, "2026-08": 74.67, "2026-09": 74.67, "2026-10": 220.32, "2026-11": 52.21, "2026-12": 52.21, "2027-01": 52.21, "2027-02": 52.21, "2027-03": 52.21, "2027-04": 52.21, "2027-05": 52.21, "2027-06": 52.21, "2027-07": 52.21, "2027-08": 52.21, "2027-09": 52.21, "2027-10": 0.0, "2027-11": 0.0}, "Mazak FJV-250-304": {"2026-02": 0.0, "2026-03": 45.18, "2026-04": 0.0, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Integrex 100-4ST-202": {"2026-02": 7.67, "2026-03": 78.03, "2026-04": 117.9, "2026-05": 245.92, "2026-06": 70.17, "2026-07": 151.17, "2026-08": 47.17, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 23.25, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak QTN-250 MSY-101": {"2026-02": 100.5, "2026-03": 24.3, "2026-04": 100.97, "2026-05": 196.53, "2026-06": 263.51, "2026-07": 65.42, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 11.25, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 3.67}, "Mazak Quick Turn 10-104": {"2026-02": 0.0, "2026-03": 10.58, "2026-04": 8.38, "2026-05": 29.04, "2026-06": 251.21, "2026-07": 3.99, "2026-08": 127.66, "2026-09": 11.33, "2026-10": 0.0, "2026-11": 8.5, "2026-12": 20.83, "2027-01": 0.0, "2027-02": 5.38, "2027-03": 0.0, "2027-04": 6.42, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Quick Turn 250 II-102": {"2026-02": 12.08, "2026-03": 44.45, "2026-04": 30.0, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 79.31, "2026-08": 0.0, "2026-09": 29.47, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 17.08, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Quick Turn 6T-103": {"2026-02": 10.15, "2026-03": 106.76, "2026-04": 123.41, "2026-05": 43.31, "2026-06": 331.52, "2026-07": 134.84, "2026-08": 141.93, "2026-09": 74.75, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 25.41, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 41.38, "2027-11": 25.41}, "Mazak VCN510CKY (1)-301": {"2026-02": 6.59, "2026-03": 97.59, "2026-04": 68.43, "2026-05": 117.13, "2026-06": 159.77, "2026-07": 385.47, "2026-08": 122.57, "2026-09": 119.75, "2026-10": 109.03, "2026-11": 114.08, "2026-12": 113.39, "2027-01": 106.0, "2027-02": 0.0, "2027-03": 219.39, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak VCN510CKY (2)-302": {"2026-02": 0.0, "2026-03": 0.0, "2026-04": 231.4, "2026-05": 127.01, "2026-06": 43.75, "2026-07": 125.36, "2026-08": 74.3, "2026-09": 100.02, "2026-10": 0.0, "2026-11": 85.73, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak VCN510CKY w 4AX Rotary-303": {"2026-02": 0.0, "2026-03": 111.08, "2026-04": 69.12, "2026-05": 91.16, "2026-06": 32.79, "2026-07": 49.56, "2026-08": 50.25, "2026-09": 10.23, "2026-10": 40.36, "2026-11": 8.77, "2026-12": 1.53, "2027-01": 3.37, "2027-02": 16.16, "2027-03": 44.96, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 29.75, "2027-07": 22.18, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 29.75, "2027-11": 3.7}, "Okuma - M460V-5AX-503": {"2026-02": 6.92, "2026-03": 47.11, "2026-04": 416.73, "2026-05": 275.96, "2026-06": 204.62, "2026-07": 141.11, "2026-08": 70.76, "2026-09": 26.06, "2026-10": 56.89, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 45.46, "2027-02": 0.0, "2027-03": 79.55, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 81.83, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 81.83, "2027-11": 0.0}, "Okuma - M460V-5AX-508": {"2026-02": 0.0, "2026-03": 70.5, "2026-04": 274.25, "2026-05": 431.0, "2026-06": 395.17, "2026-07": 288.67, "2026-08": 0.0, "2026-09": 82.0, "2026-10": 96.1, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Okuma - M460V-5AX-509": {"2026-02": 0.0, "2026-03": 0.0, "2026-04": 0.0, "2026-05": 105.8, "2026-06": 195.86, "2026-07": 203.17, "2026-08": 169.91, "2026-09": 91.2, "2026-10": 168.97, "2026-11": 337.94, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Okuma- MULTUS U3000- (205)": {"2026-02": 39.88, "2026-03": 15.9, "2026-04": 66.29, "2026-05": 149.39, "2026-06": 23.98, "2026-07": 32.06, "2026-08": 0.0, "2026-09": 127.97, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}}, "setup": {"C.R. ONSRUD 5 AXIS-506": {"2026-02": 0.0, "2026-03": 0.3, "2026-04": 1.0, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Fastems ROBO FMS One-510": {"2026-02": 1.0, "2026-03": 19.9, "2026-04": 43.7, "2026-05": 20.8, "2026-06": 17.0, "2026-07": 8.0, "2026-08": 19.0, "2026-09": 5.5, "2026-10": 10.0, "2026-11": 11.0, "2026-12": 6.0, "2027-01": 0.0, "2027-02": 4.0, "2027-03": 4.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HAAS UMC-750 5 AXIS (1)-504": {"2026-02": 2.0, "2026-03": 5.8, "2026-04": 5.0, "2026-05": 1.0, "2026-06": 6.0, "2026-07": 3.0, "2026-08": 4.0, "2026-09": 4.0, "2026-10": 1.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HAAS UMC-750 5 AXIS (2)-505": {"2026-02": 2.0, "2026-03": 2.0, "2026-04": 0.0, "2026-05": 4.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 2.0, "2026-09": 12.0, "2026-10": 2.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HYUNDAI L 2100SY-105": {"2026-02": 0.0, "2026-03": 3.0, "2026-04": 3.8, "2026-05": 1.0, "2026-06": 3.0, "2026-07": 3.0, "2026-08": 3.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Integrex 200-3ST-201": {"2026-02": 0.0, "2026-03": 1.0, "2026-04": 16.0, "2026-05": 8.0, "2026-06": 0.0, "2026-07": 23.2, "2026-08": 9.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Komo VR510 CNC Router-306": {"2026-02": 0.0, "2026-03": 4.8, "2026-04": 3.5, "2026-05": 0.0, "2026-06": 0.5, "2026-07": 0.3, "2026-08": 2.3, "2026-09": 0.0, "2026-10": 2.3, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak - HCN-4000 II-401": {"2026-02": 0.0, "2026-03": 14.0, "2026-04": 29.0, "2026-05": 14.0, "2026-06": 30.0, "2026-07": 19.0, "2026-08": 19.0, "2026-09": 19.0, "2026-10": 42.0, "2026-11": 9.0, "2026-12": 9.0, "2027-01": 9.0, "2027-02": 9.0, "2027-03": 9.0, "2027-04": 9.0, "2027-05": 9.0, "2027-06": 9.0, "2027-07": 9.0, "2027-08": 9.0, "2027-09": 9.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak - HCN-4000 III-402": {"2026-02": 0.0, "2026-03": 4.7, "2026-04": 13.4, "2026-05": 5.0, "2026-06": 15.4, "2026-07": 10.2, "2026-08": 10.2, "2026-09": 10.2, "2026-10": 23.1, "2026-11": 5.2, "2026-12": 5.2, "2027-01": 5.2, "2027-02": 5.2, "2027-03": 5.2, "2027-04": 5.2, "2027-05": 5.2, "2027-06": 5.2, "2027-07": 5.2, "2027-08": 5.2, "2027-09": 5.2, "2027-10": 0.0, "2027-11": 0.0}, "Mazak FJV-250-304": {"2026-02": 0.0, "2026-03": 1.6, "2026-04": 0.0, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Integrex 100-4ST-202": {"2026-02": 1.0, "2026-03": 7.0, "2026-04": 7.0, "2026-05": 16.5, "2026-06": 3.0, "2026-07": 12.0, "2026-08": 1.5, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 3.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak QTN-250 MSY-101": {"2026-02": 12.0, "2026-03": 3.0, "2026-04": 13.0, "2026-05": 14.0, "2026-06": 14.8, "2026-07": 9.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 1.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 1.0}, "Mazak Quick Turn 10-104": {"2026-02": 0.0, "2026-03": 1.0, "2026-04": 2.5, "2026-05": 7.3, "2026-06": 8.0, "2026-07": 1.5, "2026-08": 14.6, "2026-09": 1.5, "2026-10": 0.0, "2026-11": 1.0, "2026-12": 1.5, "2027-01": 0.0, "2027-02": 1.0, "2027-03": 0.0, "2027-04": 1.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Quick Turn 250 II-102": {"2026-02": 2.0, "2026-03": 7.0, "2026-04": 4.1, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 9.6, "2026-08": 0.0, "2026-09": 3.3, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 2.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Quick Turn 6T-103": {"2026-02": 1.2, "2026-03": 6.5, "2026-04": 10.7, "2026-05": 4.3, "2026-06": 10.5, "2026-07": 6.0, "2026-08": 3.0, "2026-09": 4.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 1.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 3.0, "2027-11": 1.0}, "Mazak VCN510CKY (1)-301": {"2026-02": 2.0, "2026-03": 3.2, "2026-04": 7.5, "2026-05": 18.0, "2026-06": 9.7, "2026-07": 17.2, "2026-08": 8.4, "2026-09": 5.9, "2026-10": 4.7, "2026-11": 4.9, "2026-12": 4.9, "2027-01": 3.9, "2027-02": 0.0, "2027-03": 8.8, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak VCN510CKY (2)-302": {"2026-02": 0.0, "2026-03": 0.0, "2026-04": 18.8, "2026-05": 7.5, "2026-06": 1.0, "2026-07": 12.0, "2026-08": 1.8, "2026-09": 13.0, "2026-10": 0.0, "2026-11": 5.8, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak VCN510CKY w 4AX Rotary-303": {"2026-02": 0.0, "2026-03": 6.0, "2026-04": 7.8, "2026-05": 7.3, "2026-06": 4.2, "2026-07": 6.1, "2026-08": 3.7, "2026-09": 3.2, "2026-10": 3.6, "2026-11": 0.2, "2026-12": 0.2, "2027-01": 0.8, "2027-02": 2.0, "2027-03": 3.4, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.8, "2027-07": 2.6, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.8, "2027-11": 1.5}, "Okuma - M460V-5AX-503": {"2026-02": 0.0, "2026-03": 2.5, "2026-04": 23.5, "2026-05": 21.5, "2026-06": 14.8, "2026-07": 13.5, "2026-08": 5.5, "2026-09": 3.0, "2026-10": 3.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 4.0, "2027-02": 0.0, "2027-03": 1.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 1.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 1.0, "2027-11": 0.0}, "Okuma - M460V-5AX-508": {"2026-02": 0.0, "2026-03": 3.0, "2026-04": 6.8, "2026-05": 11.0, "2026-06": 8.0, "2026-07": 7.0, "2026-08": 0.0, "2026-09": 3.0, "2026-10": 6.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Okuma - M460V-5AX-509": {"2026-02": 0.0, "2026-03": 0.0, "2026-04": 0.0, "2026-05": 8.5, "2026-06": 17.0, "2026-07": 18.5, "2026-08": 17.5, "2026-09": 10.5, "2026-10": 7.3, "2026-11": 8.6, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Okuma- MULTUS U3000- (205)": {"2026-02": 6.0, "2026-03": 2.0, "2026-04": 11.5, "2026-05": 8.0, "2026-06": 4.0, "2026-07": 6.0, "2026-08": 0.0, "2026-09": 2.8, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}}, "target_hrs": {"C.R. ONSRUD 5 AXIS-506": {"2026-02": 0.0, "2026-03": 128.5, "2026-04": 34.33, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Fastems ROBO FMS One-510": {"2026-02": 1.42, "2026-03": 305.47, "2026-04": 629.62, "2026-05": 425.32, "2026-06": 398.55, "2026-07": 253.99, "2026-08": 515.89, "2026-09": 123.57, "2026-10": 230.5, "2026-11": 180.06, "2026-12": 91.33, "2027-01": 0.0, "2027-02": 132.98, "2027-03": 69.37, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HAAS UMC-750 5 AXIS (1)-504": {"2026-02": 59.83, "2026-03": 174.26, "2026-04": 274.16, "2026-05": 23.25, "2026-06": 397.25, "2026-07": 207.92, "2026-08": 231.17, "2026-09": 93.0, "2026-10": 23.25, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HAAS UMC-750 5 AXIS (2)-505": {"2026-02": 184.67, "2026-03": 184.67, "2026-04": 0.0, "2026-05": 369.34, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 184.67, "2026-09": 1108.02, "2026-10": 184.67, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "HYUNDAI L 2100SY-105": {"2026-02": 0.0, "2026-03": 37.5, "2026-04": 52.47, "2026-05": 10.33, "2026-06": 27.47, "2026-07": 53.02, "2026-08": 28.28, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Integrex 200-3ST-201": {"2026-02": 0.0, "2026-03": 34.92, "2026-04": 35.25, "2026-05": 110.0, "2026-06": 0.0, "2026-07": 132.8, "2026-08": 117.62, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Komo VR510 CNC Router-306": {"2026-02": 0.0, "2026-03": 819.04, "2026-04": 8.54, "2026-05": 0.0, "2026-06": 10.92, "2026-07": 1.33, "2026-08": 30.48, "2026-09": 0.0, "2026-10": 30.48, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak - HCN-4000 II-401": {"2026-02": 0.0, "2026-03": 112.75, "2026-04": 217.85, "2026-05": 234.48, "2026-06": 316.5, "2026-07": 161.49, "2026-08": 161.49, "2026-09": 161.49, "2026-10": 377.75, "2026-11": 64.01, "2026-12": 64.01, "2027-01": 64.01, "2027-02": 64.01, "2027-03": 64.01, "2027-04": 64.01, "2027-05": 64.01, "2027-06": 64.01, "2027-07": 64.01, "2027-08": 64.01, "2027-09": 64.01, "2027-10": 0.0, "2027-11": 0.0}, "Mazak - HCN-4000 III-402": {"2026-02": 0.0, "2026-03": 37.07, "2026-04": 110.17, "2026-05": 17.46, "2026-06": 107.68, "2026-07": 64.47, "2026-08": 64.47, "2026-09": 64.47, "2026-10": 197.22, "2026-11": 47.01, "2026-12": 47.01, "2027-01": 47.01, "2027-02": 47.01, "2027-03": 47.01, "2027-04": 47.01, "2027-05": 47.01, "2027-06": 47.01, "2027-07": 47.01, "2027-08": 47.01, "2027-09": 47.01, "2027-10": 0.0, "2027-11": 0.0}, "Mazak FJV-250-304": {"2026-02": 0.0, "2026-03": 43.58, "2026-04": 0.0, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 0.0, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Integrex 100-4ST-202": {"2026-02": 6.67, "2026-03": 71.03, "2026-04": 110.9, "2026-05": 229.42, "2026-06": 67.17, "2026-07": 139.17, "2026-08": 45.67, "2026-09": 0.0, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 20.25, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak QTN-250 MSY-101": {"2026-02": 88.5, "2026-03": 21.3, "2026-04": 87.97, "2026-05": 182.53, "2026-06": 248.71, "2026-07": 56.42, "2026-08": 0.0, "2026-09": 0.0, "2026-10": 10.25, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 2.67}, "Mazak Quick Turn 10-104": {"2026-02": 0.0, "2026-03": 9.58, "2026-04": 5.88, "2026-05": 21.74, "2026-06": 243.21, "2026-07": 2.49, "2026-08": 113.06, "2026-09": 9.83, "2026-10": 0.0, "2026-11": 7.5, "2026-12": 19.33, "2027-01": 0.0, "2027-02": 4.38, "2027-03": 0.0, "2027-04": 5.42, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Quick Turn 250 II-102": {"2026-02": 10.08, "2026-03": 37.45, "2026-04": 25.9, "2026-05": 0.0, "2026-06": 0.0, "2026-07": 69.71, "2026-08": 0.0, "2026-09": 26.17, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 15.08, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak Quick Turn 6T-103": {"2026-02": 8.95, "2026-03": 100.26, "2026-04": 112.71, "2026-05": 39.01, "2026-06": 321.02, "2026-07": 128.84, "2026-08": 138.93, "2026-09": 70.75, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 24.41, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 38.38, "2027-11": 24.41}, "Mazak VCN510CKY (1)-301": {"2026-02": 4.59, "2026-03": 94.39, "2026-04": 60.93, "2026-05": 99.13, "2026-06": 150.07, "2026-07": 368.27, "2026-08": 114.17, "2026-09": 113.85, "2026-10": 104.33, "2026-11": 109.18, "2026-12": 108.49, "2027-01": 102.1, "2027-02": 0.0, "2027-03": 210.59, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak VCN510CKY (2)-302": {"2026-02": 0.0, "2026-03": 0.0, "2026-04": 212.6, "2026-05": 119.51, "2026-06": 42.75, "2026-07": 113.36, "2026-08": 72.5, "2026-09": 87.02, "2026-10": 0.0, "2026-11": 79.93, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Mazak VCN510CKY w 4AX Rotary-303": {"2026-02": 0.0, "2026-03": 105.08, "2026-04": 61.32, "2026-05": 83.86, "2026-06": 28.59, "2026-07": 43.46, "2026-08": 46.55, "2026-09": 7.03, "2026-10": 36.76, "2026-11": 8.57, "2026-12": 1.33, "2027-01": 2.57, "2027-02": 14.16, "2027-03": 41.56, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 28.95, "2027-07": 19.58, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 28.95, "2027-11": 2.2}, "Okuma - M460V-5AX-503": {"2026-02": 6.92, "2026-03": 44.61, "2026-04": 393.23, "2026-05": 254.46, "2026-06": 189.82, "2026-07": 127.61, "2026-08": 65.26, "2026-09": 23.06, "2026-10": 53.89, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 41.46, "2027-02": 0.0, "2027-03": 78.55, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 80.83, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 80.83, "2027-11": 0.0}, "Okuma - M460V-5AX-508": {"2026-02": 0.0, "2026-03": 67.5, "2026-04": 267.45, "2026-05": 420.0, "2026-06": 387.17, "2026-07": 281.67, "2026-08": 0.0, "2026-09": 79.0, "2026-10": 90.1, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Okuma - M460V-5AX-509": {"2026-02": 0.0, "2026-03": 0.0, "2026-04": 0.0, "2026-05": 97.3, "2026-06": 178.86, "2026-07": 184.67, "2026-08": 152.41, "2026-09": 80.7, "2026-10": 161.67, "2026-11": 329.34, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}, "Okuma- MULTUS U3000- (205)": {"2026-02": 33.88, "2026-03": 13.9, "2026-04": 54.79, "2026-05": 141.39, "2026-06": 19.98, "2026-07": 26.06, "2026-08": 0.0, "2026-09": 125.17, "2026-10": 0.0, "2026-11": 0.0, "2026-12": 0.0, "2027-01": 0.0, "2027-02": 0.0, "2027-03": 0.0, "2027-04": 0.0, "2027-05": 0.0, "2027-06": 0.0, "2027-07": 0.0, "2027-08": 0.0, "2027-09": 0.0, "2027-10": 0.0, "2027-11": 0.0}}, "totals": {"2026-02": 434.71, "2026-03": 2541.16, "2026-04": 2984.67, "2026-05": 3056.23, "2026-06": 3302.62, "2026-07": 2601.85, "2026-08": 2207.12, "2026-09": 2274.03, "2026-10": 1606.87, "2026-11": 871.3, "2026-12": 358.3, "2027-01": 280.05, "2027-02": 324.07, "2027-03": 542.49, "2027-04": 131.64, "2027-05": 150.63, "2027-06": 236.8, "2027-07": 147.4, "2027-08": 125.22, "2027-09": 125.22, "2027-10": 152.96, "2027-11": 32.78}, "totals_setup": {"2026-02": 29.2, "2026-03": 98.3, "2026-04": 228.6, "2026-05": 177.7, "2026-06": 166.9, "2026-07": 185.1, "2026-08": 124.5, "2026-09": 100.9, "2026-10": 106.0, "2026-11": 45.7, "2026-12": 26.8, "2027-01": 22.9, "2027-02": 26.2, "2027-03": 31.4, "2027-04": 15.2, "2027-05": 15.2, "2027-06": 16.0, "2027-07": 16.8, "2027-08": 14.2, "2027-09": 14.2, "2027-10": 4.8, "2027-11": 3.5}, "totals_target": {"2026-02": 405.51, "2026-03": 2442.86, "2026-04": 2756.07, "2026-05": 2878.53, "2026-06": 3135.72, "2026-07": 2416.75, "2026-08": 2082.62, "2026-09": 2173.13, "2026-10": 1500.87, "2026-11": 825.6, "2026-12": 331.5, "2027-01": 257.15, "2027-02": 297.87, "2027-03": 511.09, "2027-04": 116.44, "2027-05": 135.43, "2027-06": 220.8, "2027-07": 130.6, "2027-08": 111.02, "2027-09": 111.02, "2027-10": 148.16, "2027-11": 29.28}, "capacity": {"C.R. ONSRUD 5 AXIS-506": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 0.0}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 0.0}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Fastems ROBO FMS One-510": {"2026-02": {"theoretical": 784.0, "effective": 627.2}, "2026-03": {"theoretical": 876.0, "effective": 700.8}, "2026-04": {"theoretical": 864.0, "effective": 691.2}, "2026-05": {"theoretical": 820.0, "effective": 656.0}, "2026-06": {"theoretical": 864.0, "effective": 691.2}, "2026-07": {"theoretical": 876.0, "effective": 700.8}, "2026-08": {"theoretical": 848.0, "effective": 678.4}, "2026-09": {"theoretical": 864.0, "effective": 691.2}, "2026-10": {"theoretical": 848.0, "effective": 678.4}, "2026-11": {"theoretical": 836.0, "effective": 668.8}, "2026-12": {"theoretical": 904.0, "effective": 723.2}, "2027-01": {"theoretical": 848.0, "effective": 678.4}, "2027-02": {"theoretical": 784.0, "effective": 627.2}, "2027-03": {"theoretical": 876.0, "effective": 700.8}, "2027-04": {"theoretical": 864.0, "effective": 691.2}, "2027-05": {"theoretical": 820.0, "effective": 656.0}, "2027-06": {"theoretical": 864.0, "effective": 691.2}, "2027-07": {"theoretical": 876.0, "effective": 700.8}, "2027-08": {"theoretical": 848.0, "effective": 678.4}, "2027-09": {"theoretical": 864.0, "effective": 691.2}, "2027-10": {"theoretical": 848.0, "effective": 678.4}, "2027-11": {"theoretical": 836.0, "effective": 668.8}}, "HAAS UMC-750 5 AXIS (1)-504": {"2026-02": {"theoretical": 160.0, "effective": 128.0}, "2026-03": {"theoretical": 180.0, "effective": 144.0}, "2026-04": {"theoretical": 180.0, "effective": 144.0}, "2026-05": {"theoretical": 160.0, "effective": 128.0}, "2026-06": {"theoretical": 180.0, "effective": 144.0}, "2026-07": {"theoretical": 180.0, "effective": 144.0}, "2026-08": {"theoretical": 170.0, "effective": 136.0}, "2026-09": {"theoretical": 180.0, "effective": 144.0}, "2026-10": {"theoretical": 170.0, "effective": 136.0}, "2026-11": {"theoretical": 170.0, "effective": 136.0}, "2026-12": {"theoretical": 190.0, "effective": 152.0}, "2027-01": {"theoretical": 170.0, "effective": 136.0}, "2027-02": {"theoretical": 160.0, "effective": 128.0}, "2027-03": {"theoretical": 180.0, "effective": 144.0}, "2027-04": {"theoretical": 180.0, "effective": 144.0}, "2027-05": {"theoretical": 160.0, "effective": 128.0}, "2027-06": {"theoretical": 180.0, "effective": 144.0}, "2027-07": {"theoretical": 180.0, "effective": 144.0}, "2027-08": {"theoretical": 170.0, "effective": 136.0}, "2027-09": {"theoretical": 180.0, "effective": 144.0}, "2027-10": {"theoretical": 170.0, "effective": 136.0}, "2027-11": {"theoretical": 170.0, "effective": 136.0}}, "HAAS UMC-750 5 AXIS (2)-505": {"2026-02": {"theoretical": 160.0, "effective": 128.0}, "2026-03": {"theoretical": 180.0, "effective": 144.0}, "2026-04": {"theoretical": 180.0, "effective": 144.0}, "2026-05": {"theoretical": 160.0, "effective": 128.0}, "2026-06": {"theoretical": 180.0, "effective": 144.0}, "2026-07": {"theoretical": 180.0, "effective": 144.0}, "2026-08": {"theoretical": 170.0, "effective": 136.0}, "2026-09": {"theoretical": 180.0, "effective": 144.0}, "2026-10": {"theoretical": 170.0, "effective": 136.0}, "2026-11": {"theoretical": 170.0, "effective": 136.0}, "2026-12": {"theoretical": 190.0, "effective": 152.0}, "2027-01": {"theoretical": 170.0, "effective": 136.0}, "2027-02": {"theoretical": 160.0, "effective": 128.0}, "2027-03": {"theoretical": 180.0, "effective": 144.0}, "2027-04": {"theoretical": 180.0, "effective": 144.0}, "2027-05": {"theoretical": 160.0, "effective": 128.0}, "2027-06": {"theoretical": 180.0, "effective": 144.0}, "2027-07": {"theoretical": 180.0, "effective": 144.0}, "2027-08": {"theoretical": 170.0, "effective": 136.0}, "2027-09": {"theoretical": 180.0, "effective": 144.0}, "2027-10": {"theoretical": 170.0, "effective": 136.0}, "2027-11": {"theoretical": 170.0, "effective": 136.0}}, "HYUNDAI L 2100SY-105": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Integrex 200-3ST-201": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Komo VR510 CNC Router-306": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak - HCN-4000 II-401": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak - HCN-4000 III-402": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak FJV-250-304": {"2026-02": {"theoretical": 0, "effective": 0}, "2026-03": {"theoretical": 0, "effective": 0}, "2026-04": {"theoretical": 0, "effective": 0}, "2026-05": {"theoretical": 0, "effective": 0}, "2026-06": {"theoretical": 0, "effective": 0}, "2026-07": {"theoretical": 0, "effective": 0}, "2026-08": {"theoretical": 0, "effective": 0}, "2026-09": {"theoretical": 0, "effective": 0}, "2026-10": {"theoretical": 0, "effective": 0}, "2026-11": {"theoretical": 0, "effective": 0}, "2026-12": {"theoretical": 0, "effective": 0}, "2027-01": {"theoretical": 0, "effective": 0}, "2027-02": {"theoretical": 0, "effective": 0}, "2027-03": {"theoretical": 0, "effective": 0}, "2027-04": {"theoretical": 0, "effective": 0}, "2027-05": {"theoretical": 0, "effective": 0}, "2027-06": {"theoretical": 0, "effective": 0}, "2027-07": {"theoretical": 0, "effective": 0}, "2027-08": {"theoretical": 0, "effective": 0}, "2027-09": {"theoretical": 0, "effective": 0}, "2027-10": {"theoretical": 0, "effective": 0}, "2027-11": {"theoretical": 0, "effective": 0}}, "Mazak Integrex 100-4ST-202": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak QTN-250 MSY-101": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak Quick Turn 10-104": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak Quick Turn 250 II-102": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak Quick Turn 6T-103": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak VCN510CKY (1)-301": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak VCN510CKY (2)-302": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Mazak VCN510CKY w 4AX Rotary-303": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}, "Okuma - M460V-5AX-503": {"2026-02": {"theoretical": 464.0, "effective": 371.2}, "2026-03": {"theoretical": 516.0, "effective": 412.8}, "2026-04": {"theoretical": 504.0, "effective": 403.2}, "2026-05": {"theoretical": 500.0, "effective": 400.0}, "2026-06": {"theoretical": 504.0, "effective": 403.2}, "2026-07": {"theoretical": 516.0, "effective": 412.8}, "2026-08": {"theoretical": 508.0, "effective": 406.4}, "2026-09": {"theoretical": 504.0, "effective": 403.2}, "2026-10": {"theoretical": 508.0, "effective": 406.4}, "2026-11": {"theoretical": 496.0, "effective": 396.8}, "2026-12": {"theoretical": 524.0, "effective": 419.2}, "2027-01": {"theoretical": 508.0, "effective": 406.4}, "2027-02": {"theoretical": 464.0, "effective": 371.2}, "2027-03": {"theoretical": 516.0, "effective": 412.8}, "2027-04": {"theoretical": 504.0, "effective": 403.2}, "2027-05": {"theoretical": 500.0, "effective": 400.0}, "2027-06": {"theoretical": 504.0, "effective": 403.2}, "2027-07": {"theoretical": 516.0, "effective": 412.8}, "2027-08": {"theoretical": 508.0, "effective": 406.4}, "2027-09": {"theoretical": 504.0, "effective": 403.2}, "2027-10": {"theoretical": 508.0, "effective": 406.4}, "2027-11": {"theoretical": 496.0, "effective": 396.8}}, "Okuma - M460V-5AX-508": {"2026-02": {"theoretical": 464.0, "effective": 371.2}, "2026-03": {"theoretical": 516.0, "effective": 412.8}, "2026-04": {"theoretical": 504.0, "effective": 403.2}, "2026-05": {"theoretical": 500.0, "effective": 400.0}, "2026-06": {"theoretical": 504.0, "effective": 403.2}, "2026-07": {"theoretical": 516.0, "effective": 412.8}, "2026-08": {"theoretical": 508.0, "effective": 406.4}, "2026-09": {"theoretical": 504.0, "effective": 403.2}, "2026-10": {"theoretical": 508.0, "effective": 406.4}, "2026-11": {"theoretical": 496.0, "effective": 396.8}, "2026-12": {"theoretical": 524.0, "effective": 419.2}, "2027-01": {"theoretical": 508.0, "effective": 406.4}, "2027-02": {"theoretical": 464.0, "effective": 371.2}, "2027-03": {"theoretical": 516.0, "effective": 412.8}, "2027-04": {"theoretical": 504.0, "effective": 403.2}, "2027-05": {"theoretical": 500.0, "effective": 400.0}, "2027-06": {"theoretical": 504.0, "effective": 403.2}, "2027-07": {"theoretical": 516.0, "effective": 412.8}, "2027-08": {"theoretical": 508.0, "effective": 406.4}, "2027-09": {"theoretical": 504.0, "effective": 403.2}, "2027-10": {"theoretical": 508.0, "effective": 406.4}, "2027-11": {"theoretical": 496.0, "effective": 396.8}}, "Okuma - M460V-5AX-509": {"2026-02": {"theoretical": 464.0, "effective": 371.2}, "2026-03": {"theoretical": 516.0, "effective": 412.8}, "2026-04": {"theoretical": 504.0, "effective": 403.2}, "2026-05": {"theoretical": 500.0, "effective": 400.0}, "2026-06": {"theoretical": 504.0, "effective": 403.2}, "2026-07": {"theoretical": 516.0, "effective": 412.8}, "2026-08": {"theoretical": 508.0, "effective": 406.4}, "2026-09": {"theoretical": 504.0, "effective": 403.2}, "2026-10": {"theoretical": 508.0, "effective": 406.4}, "2026-11": {"theoretical": 496.0, "effective": 396.8}, "2026-12": {"theoretical": 524.0, "effective": 419.2}, "2027-01": {"theoretical": 508.0, "effective": 406.4}, "2027-02": {"theoretical": 464.0, "effective": 371.2}, "2027-03": {"theoretical": 516.0, "effective": 412.8}, "2027-04": {"theoretical": 504.0, "effective": 403.2}, "2027-05": {"theoretical": 500.0, "effective": 400.0}, "2027-06": {"theoretical": 504.0, "effective": 403.2}, "2027-07": {"theoretical": 516.0, "effective": 412.8}, "2027-08": {"theoretical": 508.0, "effective": 406.4}, "2027-09": {"theoretical": 504.0, "effective": 403.2}, "2027-10": {"theoretical": 508.0, "effective": 406.4}, "2027-11": {"theoretical": 496.0, "effective": 396.8}}, "Okuma- MULTUS U3000- (205)": {"2026-02": {"theoretical": 160.0, "effective": 104.0}, "2026-03": {"theoretical": 180.0, "effective": 117.0}, "2026-04": {"theoretical": 180.0, "effective": 117.0}, "2026-05": {"theoretical": 160.0, "effective": 104.0}, "2026-06": {"theoretical": 180.0, "effective": 117.0}, "2026-07": {"theoretical": 180.0, "effective": 117.0}, "2026-08": {"theoretical": 170.0, "effective": 110.5}, "2026-09": {"theoretical": 180.0, "effective": 117.0}, "2026-10": {"theoretical": 170.0, "effective": 110.5}, "2026-11": {"theoretical": 170.0, "effective": 110.5}, "2026-12": {"theoretical": 190.0, "effective": 123.5}, "2027-01": {"theoretical": 170.0, "effective": 110.5}, "2027-02": {"theoretical": 160.0, "effective": 104.0}, "2027-03": {"theoretical": 180.0, "effective": 117.0}, "2027-04": {"theoretical": 180.0, "effective": 117.0}, "2027-05": {"theoretical": 160.0, "effective": 104.0}, "2027-06": {"theoretical": 180.0, "effective": 117.0}, "2027-07": {"theoretical": 180.0, "effective": 117.0}, "2027-08": {"theoretical": 170.0, "effective": 110.5}, "2027-09": {"theoretical": 180.0, "effective": 117.0}, "2027-10": {"theoretical": 170.0, "effective": 110.5}, "2027-11": {"theoretical": 170.0, "effective": 110.5}}}, "axis": {"Fastems ROBO FMS One-510": "5-Axis", "Okuma - M460V-5AX-503": "5-Axis", "Okuma - M460V-5AX-508": "5-Axis", "Okuma - M460V-5AX-509": "5-Axis", "HAAS UMC-750 5 AXIS (1)-504": "5-Axis", "HAAS UMC-750 5 AXIS (2)-505": "5-Axis", "Mazak - HCN-4000 II-401": "4-Axis", "Mazak - HCN-4000 III-402": "4-Axis", "Mazak VCN510CKY w 4AX Rotary-303": "3-Axis", "Mazak VCN510CKY (2)-302": "3-Axis", "Mazak VCN510CKY (1)-301": "3-Axis", "Integrex 200-3ST-201": "Mill-Turn", "Mazak Integrex 100-4ST-202": "Mill-Turn", "HYUNDAI L 2100SY-105": "Mill-Turn", "Okuma- MULTUS U3000- (205)": "Mill-Turn", "Mazak Quick Turn 10-104": "Lathe", "Mazak Quick Turn 250 II-102": "Lathe", "Mazak Quick Turn 6T-103": "Lathe", "Mazak QTN-250 MSY-101": "Lathe", "Komo VR510 CNC Router-306": "Router", "C.R. ONSRUD 5 AXIS-506": "Router", "Mazak FJV-250-304": "3-Axis"}};
+
+var PIVOT = JSON.parse(JSON.stringify(SEED_PIVOT));
+var MONTHS = PIVOT.months;
+var WCS = PIVOT.work_centers;
+var MONTH_LABELS = [];
+
+function buildMonthLabels() {
+  MONTH_LABELS = MONTHS.map(function(m) {
+    var p = m.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1])-1, 1);
+    return d.toLocaleString('default',{month:'short'}) + " '" + p[0].slice(2);
+  });
+}
+buildMonthLabels();
+
+var chartType = 'bar';
+var activeWC = 'all';
+var mainChart = null, utilChart = null, gapChart = null;
+var pendingCSV = null;
+
+var PALETTE = [
+  '#e8600a','#4da9e8','#27c97a','#f0b429','#a78bfa',
+  '#f472b6','#34d399','#60a5fa','#fb923c','#c084fc',
+  '#fbbf24','#38bdf8','#4ade80','#f87171','#a3e635',
+  '#e879f9','#67e8f9','#fb7185','#86efac','#fdba74',
+  '#93c5fd','#d8b4fe'
+];
+
+// ── HELPERS ──────────────────────────────────────
+function getTotalHrs(wc, m) {
+  return (PIVOT.pivot[wc] && PIVOT.pivot[wc][m]) || 0;
+}
+function getTargetHrs(wc, m) {
+  return (PIVOT.target_hrs[wc] && PIVOT.target_hrs[wc][m]) || 0;
+}
+function getEffCap(wc, m) {
+  return (PIVOT.capacity[wc] && PIVOT.capacity[wc][m] && PIVOT.capacity[wc][m].effective) || 0;
+}
+function getTheoCap(wc, m) {
+  return (PIVOT.capacity[wc] && PIVOT.capacity[wc][m] && PIVOT.capacity[wc][m].theoretical) || 0;
+}
+function getVisWCs() { return activeWC === 'all' ? WCS : [activeWC]; }
+
+// ── TABS ─────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('tabBtn'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+  document.getElementById('panel'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+  if (name === 'import') buildStatusCard();
+}
+
+// ── WC FILTER ────────────────────────────────────
+function populateWCFilter() {
+  var sel = document.getElementById('wcFilter');
+  while(sel.options.length > 1) sel.remove(1);
+  WCS.forEach(function(wc) {
+    var o = document.createElement('option'); o.value = wc; o.textContent = wc;
+    sel.appendChild(o);
+  });
+}
+populateWCFilter();
+
+// ── KPIs ─────────────────────────────────────────
+function buildKPIs() {
+  var vis = getVisWCs();
+  var totalLoaded = 0, totalTarget = 0, totalCap = 0, overCount = 0;
+  MONTHS.forEach(function(m) {
+    var mLoaded = vis.reduce(function(s,wc){ return s+getTotalHrs(wc,m); },0);
+    var mTarget = vis.reduce(function(s,wc){ return s+getTargetHrs(wc,m); },0);
+    var mCap = vis.reduce(function(s,wc){ return s+getEffCap(wc,m); },0);
+    totalLoaded += mLoaded;
+    totalTarget += mTarget;
+    totalCap += mCap;
+    if (mCap > 0 && mLoaded > mCap) overCount++;
+  });
+  var avgUtil = totalCap > 0 ? (totalLoaded / totalCap * 100) : 0;
+  var utilClass = avgUtil > 100 ? 'danger' : avgUtil > 80 ? 'warn' : 'ok';
+
+  var totalTheo = 0;
+  MONTHS.forEach(function(m) {
+    totalTheo += vis.reduce(function(s,wc){ return s+getTheoCap(wc,m); },0);
+  });
+
+  document.getElementById('kpiRow').innerHTML =
+    kEl('Total Hours Loaded', Math.round(totalLoaded).toLocaleString()+' hrs', 'acc') +
+    kEl('Theoretical Capacity', Math.round(totalTheo).toLocaleString()+' hrs', '') +
+    kEl('Effective Capacity', Math.round(totalCap).toLocaleString()+' hrs', '') +
+    kEl('Avg Utilization', avgUtil.toFixed(1)+'%', utilClass) +
+    kEl('Over-Capacity Months', overCount, overCount > 0 ? 'warn' : 'ok') +
+    kEl('Remaining Capacity', Math.round(totalCap - totalLoaded).toLocaleString()+' hrs', totalCap - totalLoaded < 0 ? 'danger' : 'ok');
+}
+
+function kEl(label, val, cls) {
+  return '<div class="kpi"><span class="kpi-label">'+label+'</span><span class="kpi-val'+(cls?' '+cls:'')+'">'+val+'</span></div>';
+}
+
+// ── MAIN CHART — Stacked Total Hrs + Capacity Lines ───────────────────
+function buildMainChart() {
+  var ctx = document.getElementById('mainChart').getContext('2d');
+  if (mainChart) mainChart.destroy();
+  var vis = getVisWCs();
+  var isStacked = chartType === 'bar';
+
+  var datasets = [];
+
+  if (chartType === 'bar') {
+    // Stacked bars: one dataset per WC (total hours)
+    vis.forEach(function(wc, i) {
+      var data = MONTHS.map(function(m){ return getTotalHrs(wc,m); });
+      var color = PALETTE[WCS.indexOf(wc) % PALETTE.length];
+      datasets.push({
+        type: 'bar',
+        label: wc,
+        data: data,
+        backgroundColor: color + 'bb',
+        borderColor: color,
+        borderWidth: 0,
+        stack: 'load',
+        order: 2
+      });
+    });
+    // Effective capacity line (total across vis WCs)
+    var effCapData = MONTHS.map(function(m){
+      return vis.reduce(function(s,wc){ return s+getEffCap(wc,m); },0);
+    });
+    datasets.push({
+      type: 'line',
+      label: 'Effective Capacity',
+      data: effCapData,
+      borderColor: '#27c97a',
+      backgroundColor: 'transparent',
+      borderWidth: 2.5,
+      borderDash: [6,3],
+      pointRadius: 3,
+      pointBackgroundColor: '#27c97a',
+      fill: false,
+      stack: undefined,
+      order: 1
+    });
+    // Theoretical capacity line
+    var theoCapData = MONTHS.map(function(m){
+      return vis.reduce(function(s,wc){ return s+getTheoCap(wc,m); },0);
+    });
+    datasets.push({
+      type: 'line',
+      label: 'Theoretical Capacity',
+      data: theoCapData,
+      borderColor: '#4da9e8',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderDash: [3,3],
+      pointRadius: 2,
+      pointBackgroundColor: '#4da9e8',
+      fill: false,
+      stack: undefined,
+      order: 0
+    });
+  } else {
+    // Line mode: total hours per WC + capacity lines
+    vis.forEach(function(wc, i) {
+      var data = MONTHS.map(function(m){ return getTotalHrs(wc,m); });
+      var color = PALETTE[WCS.indexOf(wc) % PALETTE.length];
+      datasets.push({
+        label: wc, data: data,
+        borderColor: color, backgroundColor: color+'22',
+        borderWidth: 2, pointRadius: 2, fill: false, tension: 0.3
+      });
+    });
+    var effCapData = MONTHS.map(function(m){
+      return vis.reduce(function(s,wc){ return s+getEffCap(wc,m); },0);
+    });
+    datasets.push({
+      label: 'Effective Capacity', data: effCapData,
+      borderColor: '#27c97a', backgroundColor: 'transparent',
+      borderWidth: 2.5, borderDash: [6,3], pointRadius: 3, fill: false
+    });
+  }
+
+  // Overall utilization badge
+  var totalLoaded = MONTHS.reduce(function(s,m){ return s+vis.reduce(function(ss,wc){ return ss+getTotalHrs(wc,m); },0); },0);
+  var totalCap = MONTHS.reduce(function(s,m){ return s+vis.reduce(function(ss,wc){ return ss+getEffCap(wc,m); },0); },0);
+  var avgUtil = totalCap > 0 ? (totalLoaded/totalCap*100) : 0;
+  var badge = document.getElementById('overallBadge');
+  badge.textContent = avgUtil.toFixed(1)+'% avg utilization';
+  badge.className = 'badge ' + (avgUtil > 100 ? 'badge-danger' : avgUtil > 80 ? 'badge-warn' : 'badge-ok');
+
+  mainChart = new Chart(ctx, {
+    type: chartType === 'line' ? 'line' : 'bar',
+    data: { labels: MONTH_LABELS, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color:'#7a8fa6', font:{size:10,family:'Barlow'}, padding:10, boxWidth:10 }
+        },
+        tooltip: {
+          backgroundColor:'#1c2530', borderColor:'#2e3d50', borderWidth:1,
+          titleColor:'#eaf1f8', bodyColor:'#d4dde8',
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.parsed.y === 0) return null;
+              return ' '+ctx.dataset.label+': '+ctx.parsed.y.toFixed(1)+' hrs';
+            },
+            afterBody: function(items) {
+              var loadedItems = items.filter(function(i){ return !i.dataset.label.includes('Capacity'); });
+              var total = loadedItems.reduce(function(s,i){ return s+(i.parsed.y||0); },0);
+              var cap = items.find(function(i){ return i.dataset.label==='Effective Capacity'; });
+              if (!cap || total === 0) return [];
+              var util = cap.parsed.y > 0 ? (total/cap.parsed.y*100) : 0;
+              var flag = util > 100 ? ' ⚠ OVER' : util > 80 ? ' ⚡ HIGH' : ' ✓ OK';
+              return ['─────────────','Total Loaded: '+total.toFixed(1)+' hrs','Utilization: '+util.toFixed(1)+'%'+flag];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: isStacked, ticks:{color:'#7a8fa6',font:{size:10}}, grid:{color:'rgba(46,61,80,.5)'} },
+        y: {
+          stacked: isStacked,
+          ticks:{color:'#7a8fa6',font:{size:10,family:'JetBrains Mono'}},
+          grid:{color:'rgba(46,61,80,.5)'},
+          title:{display:true,text:'Hours',color:'#7a8fa6',font:{size:10}}
+        }
+      }
+    }
+  });
+}
+
+// ── UTILIZATION CHART ─────────────────────────────
+function buildUtilChart() {
+  var ctx = document.getElementById('utilChart').getContext('2d');
+  if (utilChart) utilChart.destroy();
+  var vis = getVisWCs();
+
+  // If single WC: monthly util bars colored by threshold
+  // If all: show top-5 busiest WCs as lines
+  var datasets = [];
+
+  if (activeWC !== 'all') {
+    var wc = activeWC;
+    var data = MONTHS.map(function(m){
+      var cap = getEffCap(wc,m);
+      if (!cap) return null;
+      return Math.round(getTotalHrs(wc,m)/cap*100*10)/10;
+    });
+    var bgColors = data.map(function(v){
+      if (v === null) return 'transparent';
+      return v > 100 ? 'rgba(224,80,80,.7)' : v > 80 ? 'rgba(240,180,41,.7)' : 'rgba(39,201,122,.5)';
+    });
+    datasets.push({ label: wc+' Utilization %', data: data, backgroundColor: bgColors, borderRadius: 2 });
+  } else {
+    // Top WCs by average utilization
+    var wcUtils = WCS.map(function(wc){
+      var vals = MONTHS.map(function(m){
+        var cap = getEffCap(wc,m);
+        return cap > 0 ? getTotalHrs(wc,m)/cap*100 : 0;
+      });
+      var avg = vals.reduce(function(a,b){ return a+b; },0)/vals.length;
+      return {wc:wc, avg:avg, vals:vals};
+    }).sort(function(a,b){ return b.avg-a.avg; }).slice(0,6);
+
+    wcUtils.forEach(function(item, i) {
+      datasets.push({
+        label: item.wc.split('-')[0].trim(),
+        data: item.vals.map(function(v){ return Math.round(v*10)/10; }),
+        borderColor: PALETTE[i], backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 2, fill: false, tension: 0.3
+      });
+    });
+  }
+
+  utilChart = new Chart(ctx, {
+    type: activeWC !== 'all' ? 'bar' : 'line',
+    data: { labels: MONTH_LABELS, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position:'bottom', labels:{color:'#7a8fa6',font:{size:9},padding:8,boxWidth:8} },
+        tooltip: {
+          backgroundColor:'#1c2530', borderColor:'#2e3d50', borderWidth:1,
+          titleColor:'#eaf1f8', bodyColor:'#d4dde8'
+        },
+        annotation: undefined
+      },
+      scales: {
+        x: { ticks:{color:'#7a8fa6',font:{size:9}}, grid:{color:'rgba(46,61,80,.4)'} },
+        y: {
+          ticks:{color:'#7a8fa6',font:{size:9},callback:function(v){ return v+'%'; }},
+          grid:{color:'rgba(46,61,80,.4)'},
+          title:{display:true,text:'Utilization %',color:'#7a8fa6',font:{size:9}}
+        }
+      }
+    }
+  });
+}
+
+// ── GAP CHART — Remaining Capacity ────────────────
+function buildGapChart() {
+  var ctx = document.getElementById('gapChart').getContext('2d');
+  if (gapChart) gapChart.destroy();
+  var vis = getVisWCs();
+
+  var gapData = MONTHS.map(function(m) {
+    var cap = vis.reduce(function(s,wc){ return s+getEffCap(wc,m); },0);
+    var loaded = vis.reduce(function(s,wc){ return s+getTotalHrs(wc,m); },0);
+    return Math.round((cap - loaded)*10)/10;
+  });
+
+  var bgColors = gapData.map(function(v){
+    return v < 0 ? 'rgba(224,80,80,.65)' : v < 100 ? 'rgba(240,180,41,.55)' : 'rgba(39,201,122,.45)';
+  });
+
+  gapChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTH_LABELS,
+      datasets: [{
+        label: 'Remaining Capacity (hrs)',
+        data: gapData,
+        backgroundColor: bgColors,
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#1c2530', borderColor:'#2e3d50', borderWidth:1,
+          titleColor:'#eaf1f8', bodyColor:'#d4dde8',
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed.y;
+              return v < 0 ? ' OVER by '+Math.abs(v).toFixed(1)+' hrs' : ' '+v.toFixed(1)+' hrs available';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks:{color:'#7a8fa6',font:{size:9}}, grid:{color:'rgba(46,61,80,.4)'} },
+        y: {
+          ticks:{color:'#7a8fa6',font:{size:9}},
+          grid:{color:'rgba(46,61,80,.4)'},
+          title:{display:true,text:'Hours',color:'#7a8fa6',font:{size:9}}
+        }
+      }
+    }
+  });
+}
+
+// ── TABLE ─────────────────────────────────────────
+function buildTable() {
+  var vis = getVisWCs();
+
+  // Build header: WC | then per month: Theo / Eff / Util% | Row Total
+  var thRow = '<tr><th>Work Center</th>';
+  MONTHS.forEach(function(m,i){
+    thRow += '<th colspan="3" class="group-hdr" style="border-left:1px solid var(--border)">'+MONTH_LABELS[i]+'</th>';
+  });
+  thRow += '<th style="color:var(--accent)">Total Tgt</th><th style="color:var(--info)">Eff Cap</th><th style="color:#a78bfa">Theo Cap</th><th>Util%</th></tr>';
+
+  var subRow = '<tr><th></th>';
+  MONTHS.forEach(function(){
+    subRow += '<th style="border-left:1px solid var(--border);color:var(--text-dim)">Target</th>';
+    subRow += '<th style="color:var(--info)">Eff Cap</th>';
+    subRow += '<th style="color:#a78bfa">Theo</th>';
+    subRow += '<th>Util%</th>';
+  });
+  subRow += '<th></th><th></th><th></th><th></th></tr>';
+  document.getElementById('pivotHead').innerHTML = thRow + subRow;
+
+  function utilClass(u) {
+    if (u === null || u === 0) return 'u-empty';
+    if (u > 100) return 'u-over';
+    if (u >= 80) return 'u-warn';
+    return 'u-ok';
+  }
+
+  var html = '';
+  var rowTotals = { target:0, cap:0, theo:0 };
+
+  vis.forEach(function(wc) {
+    var rowTarget = 0, rowCap = 0, rowTheo = 0;
+    var cells = '';
+    MONTHS.forEach(function(m) {
+      var tgt = getTargetHrs(wc,m);
+      var cap = getEffCap(wc,m);
+      var theo = getTheoCap(wc,m);
+      var util = cap > 0 ? (tgt/cap*100) : null;
+      rowTarget += tgt; rowCap += cap; rowTheo += theo;
+      var utilStr = util !== null && util > 0 ? util.toFixed(0)+'%' : '-';
+      var ucls = utilClass(util && util > 0 ? util : null);
+      cells += '<td class="tgt-cell" style="border-left:1px solid rgba(46,61,80,.5)">'+(tgt>0?tgt.toFixed(1):'-')+'</td>';
+      cells += '<td class="cap-cell">'+(cap>0?cap.toFixed(0):'-')+'</td>';
+      cells += '<td style="color:#a78bfa">'+(theo>0?theo.toFixed(0):'-')+'</td>';
+      cells += '<td class="'+ucls+'">'+utilStr+'</td>';
+    });
+    rowTotals.target += rowTarget;
+    rowTotals.cap += rowCap;
+    rowTotals.theo += rowTheo;
+    var rowUtil = rowCap > 0 ? (rowTarget/rowCap*100) : null;
+    var rowUtilStr = rowUtil !== null ? rowUtil.toFixed(1)+'%' : '-';
+    html += '<tr><td>'+wc+'</td>'+cells
+      +'<td class="row-total">'+(rowTarget>0?rowTarget.toFixed(1):'-')+'</td>'
+      +'<td style="color:var(--info)">'+(rowCap>0?rowCap.toFixed(0):'-')+'</td>'
+      +'<td style="color:#a78bfa">'+(rowTheo>0?rowTheo.toFixed(0):'-')+'</td>'
+      +'<td class="'+utilClass(rowUtil)+'">'+rowUtilStr+'</td></tr>';
+  });
+
+  // Grand totals row
+  var gtUtil = rowTotals.cap > 0 ? (rowTotals.target/rowTotals.cap*100) : 0;
+  var gtCells = '';
+  MONTHS.forEach(function(m){
+    var mt=vis.reduce(function(s,wc){return s+getTargetHrs(wc,m);},0);
+    var mc=vis.reduce(function(s,wc){return s+getEffCap(wc,m);},0);
+    var mth=vis.reduce(function(s,wc){return s+getTheoCap(wc,m);},0);
+    var mu=mc>0?(mt/mc*100):null;
+    gtCells+='<td style="border-left:1px solid rgba(46,61,80,.5)">'+(mt>0?mt.toFixed(1):'-')+'</td>';
+    gtCells+='<td>'+(mc>0?mc.toFixed(0):'-')+'</td>';
+    gtCells+='<td style="color:#a78bfa">'+(mth>0?mth.toFixed(0):'-')+'</td>';
+    gtCells+='<td class="'+utilClass(mu&&mu>0?mu:null)+'">'+(mu&&mu>0?mu.toFixed(0)+'%':'-')+'</td>';
+  });
+  html += '<tr class="tot-row"><td>TOTALS</td>'+gtCells
+    +'<td>'+rowTotals.target.toFixed(1)+'</td>'
+    +'<td style="color:var(--info)">'+rowTotals.cap.toFixed(0)+'</td>'
+    +'<td style="color:#a78bfa">'+rowTotals.theo.toFixed(0)+'</td>'
+    +'<td class="'+utilClass(gtUtil)+'" style="color:var(--'+(gtUtil>100?'danger':gtUtil>80?'warn':'success')+')">'+gtUtil.toFixed(1)+'%</td></tr>';
+
+  document.getElementById('pivotBody').innerHTML = html;
+}
+
+// ── RENDER ────────────────────────────────────────
+function render() {
+  buildKPIs();
+  buildMainChart();
+
+  var single = activeWC !== 'all';
+  document.getElementById('utilWrap').style.display = '';
+  document.getElementById('gapWrap').style.display = '';
+  buildUtilChart();
+  buildGapChart();
+
+  buildTable();
+}
+
+function setChart(t) {
+  chartType = t;
+  document.getElementById('btnBar').classList.toggle('active-btn', t==='bar');
+  document.getElementById('btnLine').classList.toggle('active-btn', t==='line');
+  buildMainChart();
+}
+
+function filterWC() {
+  activeWC = document.getElementById('wcFilter').value;
+  render();
+}
+
+function exportCSV() {
+  var vis = getVisWCs();
+  var rows = ['Work Center,Month,Target Hours,Effective Capacity,Utilization %,Remaining Hrs'];
+  vis.forEach(function(wc) {
+    MONTHS.forEach(function(m,i) {
+      var tgt = getTargetHrs(wc,m);
+      var cap = getEffCap(wc,m);
+      var util = cap > 0 ? (tgt/cap*100).toFixed(1) : '';
+      var rem = cap > 0 ? (cap-tgt).toFixed(1) : '';
+      if (tgt > 0 || cap > 0) {
+        rows.push('"'+wc+'",'+MONTH_LABELS[i]+','+tgt.toFixed(1)+','+cap.toFixed(1)+','+util+','+rem);
+      }
+    });
+  });
+  var blob = new Blob([rows.join('\n')],{type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url;
+  a.download='WC_Capacity_Comparison_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV exported.','s');
+}
+
+// ── CSV IMPORT ───────────────────────────────────
+var CSV_COLS = [
+  {key:'Work Order #', alias:['wo number','work order #','work order number','wo #']},
+  {key:'Work Center',  alias:['work center','workcenter','wc']},
+  {key:'WO Must Leave By', alias:['wo must leave by','must leave by','leave by','ship date']},
+  {key:'Set-up Time (Hrs)', alias:['set-up time (hrs)','setup time (hrs)','setup hrs','setup time']},
+  {key:'Hours:Current Target', alias:['hours:current target','hours: current target','target hours','target hrs']},
+  {key:'Total Hours', alias:['total hours']},
+  {key:'Status', alias:['status']},
+  {key:'Customer', alias:['customer','customer name']},
+  {key:'Part #', alias:['part #','part number']},
+  {key:'QtyOrdered', alias:['qtyordered','qty ordered','quantity']},
+  {key:'Cust. Due', alias:['cust. due','customer due','due date']},
+  {key:'Complete', alias:['complete','completed']},
+  {key:'BOM Status', alias:['bom status','bom']},
+  {key:'Part Picture', alias:['part picture','picture']},
+];
+
+function parseCSV(text) {
+  var lines=text.trim().split(/\r?\n/);
+  var hdrs=splitLine(lines[0]);
+  return {headers:hdrs, rows:lines.slice(1).filter(function(l){return l.trim();}).map(function(l){
+    var v=splitLine(l),o={};
+    hdrs.forEach(function(h,i){o[h.trim()]=(v[i]||'').trim();});
+    return o;
+  })};
+}
+
+function splitLine(line) {
+  var r=[],c='',q=false;
+  for(var i=0;i<line.length;i++){var ch=line[i];if(ch==='"'){q=!q;continue;}if(ch===','&&!q){r.push(c);c='';continue;}c+=ch;}
+  r.push(c);return r;
+}
+
+function mapHeaders(hdrs) {
+  var map={},matched=new Set();
+  hdrs.forEach(function(h){
+    var hl=h.toLowerCase().trim();
+    for(var i=0;i<CSV_COLS.length;i++){
+      var col=CSV_COLS[i];
+      if(col.alias.some(function(a){return a===hl||hl.includes(a);})){map[h]=col.key;matched.add(col.key);break;}
+    }
+  });
+  return {map:map,matchCount:matched.size};
+}
+
+function rebuildPivot(rawRows) {
+  var wcSet=new Set(),monthSet=new Set();
+  var pTotal={},pSetup={},pTarget={};
+  rawRows.forEach(function(r){
+    var d=r['WO Must Leave By']||'',wc=r['Work Center']||'';
+    if(!d||!wc)return;
+    if((r['Work Order #']||'').toUpperCase()==='TOTALS')return;
+    try{
+      var pts=d.split('/');if(pts.length<3)return;
+      var dt=new Date(parseInt(pts[2]),parseInt(pts[0])-1,parseInt(pts[1]));
+      if(isNaN(dt.getTime()))return;
+      var m=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+      wcSet.add(wc);monthSet.add(m);
+      var th=parseFloat(r['Total Hours']||0)||0;
+      var sh=parseFloat(r['Set-up Time (Hrs)']||0)||0;
+      var tg=parseFloat(r['Hours:Current Target']||0)||0;
+      if(!th&&(sh||tg))th=sh+tg;
+      if(!pTotal[wc])pTotal[wc]={};if(!pSetup[wc])pSetup[wc]={};if(!pTarget[wc])pTarget[wc]={};
+      pTotal[wc][m]=(pTotal[wc][m]||0)+th;
+      pSetup[wc][m]=(pSetup[wc][m]||0)+sh;
+      pTarget[wc][m]=(pTarget[wc][m]||0)+tg;
+    }catch(e){}
+  });
+  var wcs=Array.from(wcSet).sort(),months=Array.from(monthSet).sort();
+  function rnd(x){return Math.round(x*100)/100;}
+  function rPivot(p){var o={};wcs.forEach(function(wc){o[wc]={};months.forEach(function(m){o[wc][m]=rnd(p[wc]?p[wc][m]||0:0);});});return o;}
+  var totals={},totalsSetup={},totalsTarget={};
+  months.forEach(function(m){
+    totals[m]=rnd(wcs.reduce(function(s,wc){return s+(pTotal[wc]&&pTotal[wc][m]||0);},0));
+    totalsSetup[m]=rnd(wcs.reduce(function(s,wc){return s+(pSetup[wc]&&pSetup[wc][m]||0);},0));
+    totalsTarget[m]=rnd(wcs.reduce(function(s,wc){return s+(pTarget[wc]&&pTarget[wc][m]||0);},0));
+  });
+  // Carry over capacity data for matching WCs
+  var cap={};
+  wcs.forEach(function(wc){
+    cap[wc]={};
+    months.forEach(function(m){
+      if(PIVOT.capacity&&PIVOT.capacity[wc]&&PIVOT.capacity[wc][m])cap[wc][m]=PIVOT.capacity[wc][m];
+      else cap[wc][m]={theoretical:0,effective:0};
+    });
+  });
+  return {work_centers:wcs,months:months,pivot:rPivot(pTotal),setup:rPivot(pSetup),target_hrs:rPivot(pTarget),
+    totals:totals,totals_setup:totalsSetup,totals_target:totalsTarget,capacity:cap,axis:PIVOT.axis||{}};
+}
+
+function dzOver(e){e.preventDefault();document.getElementById('dz').classList.add('over');}
+function dzLeave(e){document.getElementById('dz').classList.remove('over');}
+function dzDrop(e){e.preventDefault();document.getElementById('dz').classList.remove('over');var f=e.dataTransfer.files[0];if(f)processFile(f);}
+function fileSelected(e){var f=e.target.files[0];if(f)processFile(f);}
+
+function processFile(f) {
+  if(!f.name.endsWith('.csv')){logMsg('Only .csv files supported.','warn');return;}
+  logMsg('Reading '+f.name+'...','info');
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var parsed=parseCSV(e.target.result);
+    var mapped=mapHeaders(parsed.headers);
+    var rows=parsed.rows.filter(function(r){return (r[parsed.headers[0]]||'').toUpperCase()!=='TOTALS';});
+    var newWCs=Array.from(new Set(rows.map(function(r){
+      var k=Object.keys(mapped.map).find(function(h){return mapped.map[h]==='Work Center';});
+      return k?r[k]:'';
+    }).filter(Boolean))).filter(function(wc){return !WCS.includes(wc);});
+    pendingCSV={rows:rows,map:mapped.map,fileName:f.name};
+    document.getElementById('ipFile').textContent=f.name;
+    document.getElementById('ipRows').textContent=rows.length.toLocaleString();
+    document.getElementById('ipCols').textContent=mapped.matchCount+'/'+CSV_COLS.length;
+    document.getElementById('ipNewWC').textContent=newWCs.length;
+    document.getElementById('importPreview').classList.add('open');
+    logMsg(rows.length+' rows, '+mapped.matchCount+' cols matched.','ok');
+    if(newWCs.length)logMsg('New WCs: '+newWCs.join(', '),'warn');
+  };
+  rd.readAsText(f);
+}
+
+function confirmImport() {
+  if(!pendingCSV)return;
+  var mode=document.getElementById('impMode').value;
+  var stdRows=pendingCSV.rows.map(function(raw){
+    var rec={};
+    Object.keys(pendingCSV.map).forEach(function(h){rec[pendingCSV.map[h]]=raw[h]||'';});
+    return rec;
+  });
+  var newP=rebuildPivot(stdRows);
+  if(mode==='append'){newP=mergePivots(PIVOT,newP);}
+  PIVOT=newP; WCS=PIVOT.work_centers; MONTHS=PIVOT.months;
+  buildMonthLabels(); populateWCFilter();
+  activeWC='all'; document.getElementById('wcFilter').value='all';
+  logMsg('Import complete. '+WCS.length+' WCs, '+MONTHS.length+' months.','ok');
+  document.getElementById('unsavedBadge').classList.add('on');
+  pendingCSV=null; document.getElementById('importPreview').classList.remove('open');
+  render(); buildStatusCard(); toast('Imported & charts refreshed.','s');
+}
+
+function mergePivots(base,add){
+  var wcSet=new Set(base.work_centers.concat(add.work_centers));
+  var mSet=new Set(base.months.concat(add.months));
+  var wcs=Array.from(wcSet).sort(),months=Array.from(mSet).sort();
+  function m2(a,b){var o={};wcs.forEach(function(wc){o[wc]={};months.forEach(function(m){o[wc][m]=Math.round(((a[wc]&&a[wc][m]||0)+(b[wc]&&b[wc][m]||0))*100)/100;});});return o;}
+  var cap={};wcs.forEach(function(wc){cap[wc]={};months.forEach(function(m){
+    var bc=base.capacity&&base.capacity[wc]&&base.capacity[wc][m]?base.capacity[wc][m]:null;
+    var ac=add.capacity&&add.capacity[wc]&&add.capacity[wc][m]?add.capacity[wc][m]:null;
+    cap[wc][m]=bc||ac||{theoretical:0,effective:0};
+  });});
+  var tot={},ts={},tt={};
+  months.forEach(function(m){
+    tot[m]=Math.round(wcs.reduce(function(s,wc){return s+((base.pivot[wc]&&base.pivot[wc][m]||0)+(add.pivot[wc]&&add.pivot[wc][m]||0));},0)*100)/100;
+    ts[m]=Math.round(wcs.reduce(function(s,wc){return s+((base.setup&&base.setup[wc]&&base.setup[wc][m]||0)+(add.setup&&add.setup[wc]&&add.setup[wc][m]||0));},0)*100)/100;
+    tt[m]=Math.round(wcs.reduce(function(s,wc){return s+((base.target_hrs&&base.target_hrs[wc]&&base.target_hrs[wc][m]||0)+(add.target_hrs&&add.target_hrs[wc]&&add.target_hrs[wc][m]||0));},0)*100)/100;
+  });
+  return {work_centers:wcs,months:months,pivot:m2(base.pivot||{},add.pivot||{}),setup:m2(base.setup||{},add.setup||{}),
+    target_hrs:m2(base.target_hrs||{},add.target_hrs||{}),totals:tot,totals_setup:ts,totals_target:tt,capacity:cap,axis:PIVOT.axis||{}};
+}
+
+function cancelImport(){
+  pendingCSV=null;document.getElementById('importPreview').classList.remove('open');
+  logMsg('Import cancelled.','warn');
+}
+function logMsg(msg,type){
+  var log=document.getElementById('importLog');
+  var s=document.createElement('div');s.className='log-'+(type||'info');
+  s.textContent=new Date().toLocaleTimeString()+' — '+msg;
+  log.appendChild(s);log.scrollTop=log.scrollHeight;
+}
+function buildStatusCard(){
+  var grand=MONTHS.reduce(function(s,m){return s+WCS.reduce(function(ss,wc){return ss+getTotalHrs(wc,m);},0);},0);
+  var grandCap=MONTHS.reduce(function(s,m){return s+WCS.reduce(function(ss,wc){return ss+getEffCap(wc,m);},0);},0);
+  var p=grand/grandCap*100;
+  function fm(m){if(!m||m==='-')return m;var pt=m.split('-');var d=new Date(parseInt(pt[0]),parseInt(pt[1])-1,1);return d.toLocaleString('default',{month:'short',year:'numeric'});}
+  document.getElementById('statusItems').innerHTML=
+    sRow('Work Centers',WCS.length,false)+sRow('Months Covered',MONTHS.length,false)+
+    sRow('Date Range',fm(MONTHS[0])+' \u2013 '+fm(MONTHS[MONTHS.length-1]),false)+
+    sRow('Grand Total Hours',Math.round(grand).toLocaleString()+' hrs',true)+
+    sRow('Total Eff. Capacity',Math.round(grandCap).toLocaleString()+' hrs',false)+
+    sRow('Overall Utilization',p.toFixed(1)+'%',false);
+}
+function sRow(l,v,a){return '<div class="stat-item"><span class="stat-label">'+l+'</span><span class="stat-val'+(a?' acc':'')+'">'+v+'</span></div>';}
+function toast(msg,type){
+  var el=document.createElement('div');el.className='toast '+(type||'');el.textContent=msg;
+  document.getElementById('tc').appendChild(el);
+  setTimeout(function(){el.remove();},3400);
+}
+
+render();
+</script>
+</body>
+</html>
