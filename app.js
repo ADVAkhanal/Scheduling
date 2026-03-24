@@ -1,28 +1,17 @@
-let chart;
+const ctx = document.getElementById("chart");
 
-function loadEmpty() {
-  const data = {
-    labels: [],
-    datasets: [{
-      label: "Hours",
-      data: []
-    }]
-  };
+const data = {
+  labels: [],
+  datasets: [{
+    label: "Hours",
+    data: []
+  }]
+};
 
-  const config = {
-    type: "bar",
-    data: data,
-    options: {
-      responsive: true
-    }
-  };
-
-  if (chart) {
-    chart.destroy();
+new Chart(ctx, {
+  type: "bar",
+  data: data,
+  options: {
+    responsive: true
   }
-
-  chart = new Chart(document.getElementById("chart"), config);
-}
-
-// auto-load empty on start
-loadEmpty();
+});
