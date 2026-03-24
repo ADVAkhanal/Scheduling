@@ -1,18 +1,10 @@
 body {
   background: #111;
   color: #eee;
-  font-family: 'Barlow', sans-serif;
+  font-family: Arial, sans-serif;
   padding: 20px;
 }
 
-h2 {
+h1 {
   color: orange;
-}
-
-button {
-  padding: 8px 12px;
-  background: orange;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
 }
