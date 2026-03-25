@@ -25,23 +25,30 @@
   --muted2: #d0daea;
 }
 
+/* PERFORMANCE OPTIMIZED BACKGROUND */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   background: var(--bg);
+  background-image: linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px), 
+                    linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+  background-size: 30px 30px;
   color: var(--text);
   font-family: 'IBM Plex Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* SCANLINE EFFECT */
-body::after {
-  content: '';
+/* STATIC SCANLINE (Lightweight) */
+body::before {
+  content: " ";
+  display: block;
   position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 4px, 3px 100%;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 10;
 }
 
 /* ── HEADER ── */
@@ -52,6 +59,8 @@ body::after {
   padding: 18px 32px;
   border-bottom: 1px solid var(--border);
   background: var(--s1);
+  position: relative;
+  z-index: 20;
 }
 .logo-area h1 {
   font-family: 'Orbitron', sans-serif;
@@ -76,6 +85,8 @@ body::after {
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
+  position: relative;
+  z-index: 20;
 }
 .kpi {
   padding: 20px 32px;
@@ -110,6 +121,8 @@ body::after {
   background: var(--s1);
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 20;
 }
 .nav-btn {
   padding: 14px 24px;
@@ -130,11 +143,12 @@ body::after {
 }
 
 /* ── CARDS & TABLES ── */
-.main { padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.main { padding: 32px; display: flex; flex-direction: column; gap: 24px; position: relative; z-index: 20; }
 .card {
   background: var(--s1);
   border: 1px solid var(--border);
   padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 .card-header {
   display: flex;
@@ -154,7 +168,7 @@ body::after {
 }
 .card-title::before { content:''; width:4px; height:4px; background:var(--cyan); box-shadow:0 0 5px var(--cyan); }
 
-table { width: 100%; border-collapse: collapse; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.55rem;
@@ -167,19 +181,27 @@ th {
   background: var(--s2);
   cursor: pointer;
   user-select: none;
-  transition: color 0.2s, background 0.2s;
 }
-th:hover {
-  color: var(--cyan);
-  background: var(--s3);
-}
+th:hover { color: var(--cyan); background: var(--s3); }
 td {
   padding: 12px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.75rem;
   border-bottom: 1px solid rgba(255,255,255,0.03);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 tr:hover td { background: rgba(0,229,255,0.02); }
+
+/* Column Widths */
+th:nth-child(1), td:nth-child(1) { width: 15%; }
+th:nth-child(2), td:nth-child(2) { width: 25%; }
+th:nth-child(3), td:nth-child(3) { width: 10%; }
+th:nth-child(4), td:nth-child(4) { width: 15%; }
+th:nth-child(5), td:nth-child(5) { width: 10%; }
+th:nth-child(6), td:nth-child(6) { width: 10%; }
+th:nth-child(7), td:nth-child(7) { width: 15%; }
 
 .wo-tag { color: var(--cyan); font-weight: 600; }
 .status-pill {
@@ -189,6 +211,30 @@ tr:hover td { background: rgba(0,229,255,0.02); }
   border-radius: 2px;
   text-transform: uppercase;
 }
+
+/* ── PAGINATION ── */
+.pagination-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+}
+.page-btn {
+    background: var(--s2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 15px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    transition: 0.2s;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ── UPLOAD ZONE ── */
 .upload-area {
@@ -216,11 +262,7 @@ tr:hover td { background: rgba(0,229,255,0.02); }
   margin-top: 20px;
 }
 
-.sort-icon {
-    font-size: 0.6rem;
-    margin-left: 5px;
-    opacity: 0.5;
-}
+.sort-icon { font-size: 0.6rem; margin-left: 5px; opacity: 0.5; }
 </style>
 </head>
 <body>
@@ -231,7 +273,7 @@ tr:hover td { background: rgba(0,229,255,0.02); }
     <div class="sub">Operational Intelligence System // Capacity Matrix</div>
   </div>
   <div style="font-family: 'IBM Plex Mono'; font-size: 0.65rem; color: var(--muted);">
-    [ STATUS: <span style="color:var(--green)">ACTIVE_OPTIMIZED</span> ] [ <span id="clock">00:00:00</span> ]
+    [ STATUS: <span style="color:var(--green)">OPTIMIZED_CORE</span> ] [ <span id="clock">00:00:00</span> ]
   </div>
 </div>
 
@@ -249,8 +291,8 @@ tr:hover td { background: rgba(0,229,255,0.02); }
     <div class="kpi-val" id="kpi-overdue">0</div>
   </div>
   <div class="kpi" style="--kc: var(--green)">
-    <div class="kpi-label">System State</div>
-    <div class="kpi-val">READY</div>
+    <div class="kpi-label">Memory Usage</div>
+    <div class="kpi-val" style="font-size:1.2rem; color:var(--green)">OPTIMAL</div>
   </div>
 </div>
 
@@ -264,7 +306,7 @@ tr:hover td { background: rgba(0,229,255,0.02); }
     <div class="card">
       <div class="card-header">
         <div class="card-title">Production Queue Matrix</div>
-        <input type="text" id="tableSearch" placeholder="SEARCH_WO_ID..." oninput="renderTable()"
+        <input type="text" id="tableSearch" placeholder="SEARCH_WO_ID..." oninput="triggerSearch()"
                style="background:var(--s2); border:1px solid var(--border); color:var(--text); padding:5px 10px; font-family:'IBM Plex Mono'; font-size:0.65rem; outline:none;">
       </div>
       <table id="woTable">
@@ -281,6 +323,14 @@ tr:hover td { background: rgba(0,229,255,0.02); }
         </thead>
         <tbody id="woBody"></tbody>
       </table>
+      
+      <div class="pagination-wrap">
+          <div id="pageInfo">SHOWING 0 - 0 OF 0 RECORDS</div>
+          <div style="display:flex; gap:10px;">
+              <button class="page-btn" id="prevBtn" onclick="changePage(-1)" disabled>PREV</button>
+              <button class="page-btn" id="nextBtn" onclick="changePage(1)" disabled>NEXT</button>
+          </div>
+      </div>
     </div>
   </div>
 
@@ -306,11 +356,17 @@ tr:hover td { background: rgba(0,229,255,0.02); }
 let rawData = [];
 let headers = [];
 let schedule = JSON.parse(localStorage.getItem('sa_schedule') || '[]');
-let currentSort = { key: 'leave', dir: 1 }; // Default sort by date
+let filteredData = [...schedule];
+
+// PAGINATION STATE
+let currentPage = 1;
+const rowsPerPage = 50;
+let currentSort = { key: 'leave', dir: 1 };
 
 // ── INIT ──
 window.onload = () => {
-  renderTable();
+  updateKPIs();
+  triggerSearch();
   setInterval(() => {
     document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
   }, 1000);
@@ -324,6 +380,16 @@ function setTab(name) {
   if(target) target.classList.add('active');
 }
 
+// ── SEARCH & FILTER ──
+function triggerSearch() {
+  const search = document.getElementById('tableSearch').value.toLowerCase();
+  filteredData = schedule.filter(row => 
+    !search || row.wo.toString().toLowerCase().includes(search) || row.wc.toString().toLowerCase().includes(search)
+  );
+  currentPage = 1;
+  renderTable();
+}
+
 // ── SORTING LOGIC ──
 function sortTable(key) {
   if (currentSort.key === key) {
@@ -333,37 +399,68 @@ function sortTable(key) {
     currentSort.dir = 1;
   }
   
-  // Update UI Icons
   document.querySelectorAll('.sort-icon').forEach(i => i.textContent = '↕');
   const icon = document.getElementById(`sort-${key}`);
   if(icon) icon.textContent = currentSort.dir === 1 ? '▲' : '▼';
 
   schedule.sort((a, b) => {
-    let valA = a[key];
-    let valB = b[key];
-
-    // Handle Numbers
-    if (key === 'target' || key === 'qty' || key === 'op') {
-        valA = parseFloat(valA) || 0;
-        valB = parseFloat(valB) || 0;
+    let valA = a[key], valB = b[key];
+    if (['target', 'qty', 'op'].includes(key)) {
+        valA = parseFloat(valA) || 0; valB = parseFloat(valB) || 0;
+    } else if (key === 'leave') {
+        valA = valA ? new Date(valA) : new Date(0); valB = valB ? new Date(valB) : new Date(0);
+    } else {
+        valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase();
     }
-    // Handle Dates
-    else if (key === 'leave') {
-        valA = valA ? new Date(valA) : new Date(0);
-        valB = valB ? new Date(valB) : new Date(0);
-    }
-    // Handle Strings
-    else {
-        valA = String(valA).toLowerCase();
-        valB = String(valB).toLowerCase();
-    }
-
-    if (valA < valB) return -1 * currentSort.dir;
-    if (valA > valB) return 1 * currentSort.dir;
-    return 0;
+    return valA < valB ? -1 * currentSort.dir : valA > valB ? 1 * currentSort.dir : 0;
   });
 
-  renderTable();
+  triggerSearch(); // Re-filter and render
+}
+
+// ── PAGINATION ──
+function changePage(delta) {
+    currentPage += delta;
+    renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('woBody');
+  const start = (currentPage - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = filteredData.slice(start, end);
+  
+  tbody.innerHTML = pageData.map(row => {
+    const isOverdue = row.leave && new Date(row.leave) < new Date();
+    return `
+      <tr>
+        <td class="wo-tag">${row.wo}</td>
+        <td title="${row.wc}">${row.wc}</td>
+        <td style="color:var(--muted)">OP_${row.op}</td>
+        <td style="color:${isOverdue ? 'var(--red)' : 'var(--text)'}">${row.leave || '---'}</td>
+        <td>${row.qty}</td>
+        <td style="color:var(--orange)">${row.target.toFixed(1)}</td>
+        <td><span class="status-pill" style="border-color:${isOverdue ? 'var(--red)' : 'var(--border2)'}">${isOverdue ? 'CRITICAL' : 'IN_QUEUE'}</span></td>
+      </tr>`;
+  }).join('');
+
+  // Update Pagination Controls
+  const total = filteredData.length;
+  document.getElementById('pageInfo').textContent = `SHOWING ${total ? start + 1 : 0} - ${Math.min(end, total)} OF ${total} RECORDS`;
+  document.getElementById('prevBtn').disabled = currentPage === 1;
+  document.getElementById('nextBtn').disabled = end >= total;
+}
+
+function updateKPIs() {
+    let totalHours = 0;
+    let criticalCount = 0;
+    schedule.forEach(row => {
+        totalHours += row.target;
+        if (row.leave && new Date(row.leave) < new Date()) criticalCount++;
+    });
+    document.getElementById('kpi-total').textContent = schedule.length;
+    document.getElementById('kpi-hours').innerHTML = totalHours.toFixed(1) + '<span style="font-size:0.8rem"> hrs</span>';
+    document.getElementById('kpi-overdue').textContent = criticalCount;
 }
 
 // ── FILE PROCESSING ──
@@ -391,69 +488,30 @@ const MAPPING_CONFIG = [
 
 function buildMapper() {
   const container = document.getElementById('mapperFields');
-  container.innerHTML = '';
-  MAPPING_CONFIG.forEach(field => {
+  container.innerHTML = MAPPING_CONFIG.map(field => {
     const bestMatch = headers.find(h => field.keys.includes(h)) || headers[0];
-    container.innerHTML += `
-      <div>
+    return `<div>
         <label style="display:block; font-size:0.55rem; font-family:'IBM Plex Mono'; color:var(--muted); margin-bottom:5px;">${field.label}</label>
         <select id="map_${field.id}" style="width:100%; background:var(--s2); border:1px solid var(--border); color:var(--text); padding:8px; font-family:'IBM Plex Mono'; font-size:0.7rem;">
           ${headers.map(h => `<option value="${h}" ${h === bestMatch ? 'selected' : ''}>${h}</option>`).join('')}
         </select>
       </div>`;
-  });
+  }).join('');
   document.getElementById('mappingUI').style.display = 'block';
 }
 
 function injectData() {
   const maps = {};
   MAPPING_CONFIG.forEach(f => maps[f.id] = document.getElementById('map_'+f.id).value);
-
   schedule = rawData.map(row => ({
-    wo: row[maps.wo],
-    wc: row[maps.wc],
-    op: row[maps.op],
-    leave: row[maps.leave],
-    qty: row[maps.qty],
-    target: parseFloat(row[maps.target]) || 0,
-    status: 'ACTIVE'
+    wo: row[maps.wo], wc: row[maps.wc], op: row[maps.op],
+    leave: row[maps.leave], qty: row[maps.qty], 
+    target: parseFloat(row[maps.target]) || 0, status: 'ACTIVE'
   }));
-
   localStorage.setItem('sa_schedule', JSON.stringify(schedule));
-  renderTable();
+  updateKPIs();
+  triggerSearch();
   setTab('schedule');
-}
-
-function renderTable() {
-  const tbody = document.getElementById('woBody');
-  const search = document.getElementById('tableSearch').value.toLowerCase();
-  tbody.innerHTML = '';
-  
-  let totalHours = 0;
-  let criticalCount = 0;
-
-  schedule.forEach(row => {
-    if (search && !row.wo.toString().toLowerCase().includes(search)) return;
-
-    totalHours += row.target;
-    const isOverdue = row.leave && new Date(row.leave) < new Date();
-    if (isOverdue) criticalCount++;
-
-    tbody.innerHTML += `
-      <tr>
-        <td class="wo-tag">${row.wo}</td>
-        <td>${row.wc}</td>
-        <td style="color:var(--muted)">OP_${row.op}</td>
-        <td style="color:${isOverdue ? 'var(--red)' : 'var(--text)'}">${row.leave || '---'}</td>
-        <td>${row.qty}</td>
-        <td style="color:var(--orange)">${row.target.toFixed(1)}</td>
-        <td><span class="status-pill" style="border-color:${isOverdue ? 'var(--red)' : 'var(--border2)'}">${isOverdue ? 'CRITICAL' : 'IN_QUEUE'}</span></td>
-      </tr>`;
-  });
-
-  document.getElementById('kpi-total').textContent = schedule.length;
-  document.getElementById('kpi-hours').innerHTML = totalHours.toFixed(1) + '<span style="font-size:0.8rem"> hrs</span>';
-  document.getElementById('kpi-overdue').textContent = criticalCount;
 }
 </script>
 </body>
