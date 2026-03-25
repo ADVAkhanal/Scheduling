@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Standard Automata | Operational Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #07090e;
+  --s1: #0d1017;
+  --s2: #131720;
+  --s3: #1a1f2a;
+  --border: #1e2535;
+  --border2: #252d3d;
+  --cyan: #00e5ff;
+  --orange: #ff7c2a;
+  --green: #39ff7e;
+  --red: #ff3d5a;
+  --yellow: #ffd23f;
+  --text: #f0f4ff;
+  --muted: #b8c4d8;
+  --muted2: #d0daea;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCANLINE EFFECT */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
+}
+.logo-area h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  text-shadow: 0 0 15px rgba(0,229,255,0.3);
+}
+.logo-area .sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* ── KPI BAR ── */
+.kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.kpi {
+  padding: 20px 32px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 2px;
+  background: var(--kc, var(--cyan));
+  box-shadow: 0 0 10px var(--kc, var(--cyan));
+}
+.kpi-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.kpi-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ── NAVIGATION ── */
+.nav-bar {
+  display: flex;
+  background: var(--s1);
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-btn {
+  padding: 14px 24px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: 0.2s;
+}
+.nav-btn.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+
+/* ── CARDS & TABLES ── */
+.main { padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-title::before { content:''; width:4px; height:4px; background:var(--cyan); box-shadow:0 0 5px var(--cyan); }
+
+table { width: 100%; border-collapse: collapse; }
+th {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--s2);
+}
+td {
+  padding: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+tr:hover td { background: rgba(0,229,255,0.02); }
+
+.wo-tag { color: var(--cyan); font-weight: 600; }
+.status-pill {
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-area {
+  border: 1px dashed var(--border2);
+  padding: 60px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.upload-area:hover { border-color: var(--cyan); background: rgba(0,229,255,0.02); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.btn-inject {
+  background: var(--cyan);
+  color: var(--bg);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 10px 24px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 1px;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-area">
+    <h1>STANDARD AUTOMATA</h1>
+    <div class="sub">Operational Intelligence System // Tulsa, OK</div>
+  </div>
+  <div style="font-family: 'IBM Plex Mono'; font-size: 0.65rem; color: var(--muted);">
+    [ STATUS: <span style="color:var(--green)">SECURE</span> ] [ <span id="clock">00:00:00</span> ]
+  </div>
+</div>
+
+<div class="kpi-bar">
+  <div class="kpi" style="--kc: var(--cyan)">
+    <div class="kpi-label">Active Work Orders</div>
+    <div class="kpi-val" id="kpi-total">0</div>
+  </div>
+  <div class="kpi" style="--kc: var(--orange)">
+    <div class="kpi-label">Target Backlog</div>
+    <div class="kpi-val" id="kpi-hours">0.0<span style="font-size:0.8rem"> hrs</span></div>
+  </div>
+  <div class="kpi" style="--kc: var(--red)">
+    <div class="kpi-label">Critical / Overdue</div>
+    <div class="kpi-val" id="kpi-overdue">0</div>
+  </div>
+  <div class="kpi" style="--kc: var(--green)">
+    <div class="kpi-label">Capacity Delta</div>
+    <div class="kpi-val">READY</div>
+  </div>
+</div>
+
+<div class="nav-bar">
+  <button class="nav-btn active" onclick="setTab('schedule')">01_Live_Schedule</button>
+  <button class="nav-btn" onclick="setTab('upload')">02_Data_Injection</button>
+</div>
+
+<div class="main">
+  <div id="tab-schedule" class="tab-content active">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Production Queue Matrix</div>
+        <input type="text" id="tableSearch" placeholder="SEARCH_WO_ID..." 
+               style="background:var(--s2); border:1px solid var(--border); color:var(--text); padding:5px 10px; font-family:'IBM Plex Mono'; font-size:0.65rem; outline:none;">
+      </div>
+      <table id="woTable">
+        <thead>
+          <tr>
+            <th>WO_IDENT</th>
+            <th>WORK_CENTER</th>
+            <th>OP_STEP</th>
+            <th>MUST_LEAVE</th>
+            <th>QTY_ORD</th>
+            <th>TARGET_HRS</th>
+            <th>CURRENT_STATUS</th>
+          </tr>
+        </thead>
+        <tbody id="woBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-upload" class="tab-content">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:20px">Weekly Sheet Ingestion</div>
+      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <div style="font-family:'Orbitron'; color:var(--cyan); margin-bottom:10px;">SELECT_SOURCE_FILE</div>
+        <div style="font-family:'IBM Plex Mono'; font-size:0.6rem; color:var(--muted);">SUPPORTED: .XLSX / .CSV / .XLS</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="processFile(this.files[0])">
+      
+      <div id="mappingUI" style="display:none; margin-top:30px; border-top:1px solid var(--border); padding-top:20px;">
+        <div class="card-title" style="margin-bottom:15px">Field Mapping Configuration</div>
+        <div id="mapperFields" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;"></div>
+        <button class="btn-inject" onclick="injectData()">EXECUTE_INJECTION</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let rawData = [];
+let headers = [];
+let schedule = JSON.parse(localStorage.getItem('sa_schedule') || '[]');
+
+// ── INIT ──
+window.onload = () => {
+  renderTable();
+  setInterval(() => {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+  }, 1000);
+};
+
+function setTab(name) {
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── PROCESSING ──
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rawData = XLSX.utils.sheet_to_json(ws);
+    headers = Object.keys(rawData[0]);
+    buildMapper();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+const MAPPING_CONFIG = [
+  { id: 'wo', label: 'Work Order #', keys: ['Work Order #', 'WO #', 'WorkOrder'] },
+  { id: 'wc', label: 'Work Center', keys: ['Work Center', 'WC', 'WorkCenter'] },
+  { id: 'op', label: 'Op #', keys: ['Op #', 'Operation', 'Op'] },
+  { id: 'leave', label: 'Must Leave By', keys: ['WO Must Leave By', 'Must Leave By', 'Due Date'] },
+  { id: 'qty', label: 'Qty Ordered', keys: ['QtyOrdered', 'Qty', 'Quantity'] },
+  { id: 'target', label: 'Target Hours', keys: ['Hours:Current Target', 'Target', 'Target Hrs'] }
+];
+
+function buildMapper() {
+  const container = document.getElementById('mapperFields');
+  container.innerHTML = '';
+  MAPPING_CONFIG.forEach(field => {
+    const bestMatch = headers.find(h => field.keys.includes(h)) || headers[0];
+    container.innerHTML += `
+      <div>
+        <label style="display:block; font-size:0.55rem; font-family:'IBM Plex Mono'; color:var(--muted); margin-bottom:5px;">${field.label}</label>
+        <select id="map_${field.id}" style="width:100%; background:var(--s2); border:1px solid var(--border); color:var(--text); padding:8px; font-family:'IBM Plex Mono'; font-size:0.7rem;">
+          ${headers.map(h => `<option value="${h}" ${h === bestMatch ? 'selected' : ''}>${h}</option>`).join('')}
+        </select>
+      </div>`;
+  });
+  document.getElementById('mappingUI').style.display = 'block';
+}
+
+function injectData() {
+  const maps = {};
+  MAPPING_CONFIG.forEach(f => maps[f.id] = document.getElementById('map_'+f.id).value);
+
+  schedule = rawData.map(row => ({
+    wo: row[maps.wo],
+    wc: row[maps.wc],
+    op: row[maps.op],
+    leave: row[maps.leave],
+    qty: row[maps.qty],
+    target: parseFloat(row[maps.target]) || 0,
+    status: 'ACTIVE'
+  }));
+
+  localStorage.setItem('sa_schedule', JSON.stringify(schedule));
+  renderTable();
+  setTab('schedule');
+}
+
+function renderTable() {
+  const tbody = document.getElementById('woBody');
+  tbody.innerHTML = '';
+  let totalHours = 0;
+  let criticalCount = 0;
+
+  schedule.forEach(row => {
+    totalHours += row.target;
+    const isOverdue = row.leave && new Date(row.leave) < new Date();
+    if (isOverdue) criticalCount++;
+
+    tbody.innerHTML += `
+      <tr>
+        <td class="wo-tag">${row.wo}</td>
+        <td>${row.wc}</td>
+        <td style="color:var(--muted)">OP_${row.op}</td>
+        <td style="color:${isOverdue ? 'var(--red)' : 'var(--text)'}">${row.leave || '---'}</td>
+        <td>${row.qty}</td>
+        <td style="color:var(--orange)">${row.target.toFixed(1)}</td>
+        <td><span class="status-pill" style="border-color:${isOverdue ? 'var(--red)' : 'var(--border2)'}">${isOverdue ? 'CRITICAL' : 'IN_QUEUE'}</span></td>
+      </tr>`;
+  });
+
+  document.getElementById('kpi-total').textContent = schedule.length;
+  document.getElementById('kpi-hours').innerHTML = totalHours.toFixed(1) + '<span style="font-size:0.8rem"> hrs</span>';
+  document.getElementById('kpi-overdue').textContent = criticalCount;
+}
+</script>
+</body>
+</html>
