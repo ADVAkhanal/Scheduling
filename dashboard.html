@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Standard Automata | Operational Intelligence</title>
+<title>Advanced Machining | Operational Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
@@ -55,10 +55,11 @@ body::after {
 }
 .logo-area h1 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 1.1rem;
-  letter-spacing: 3px;
+  font-size: 1.4rem;
+  letter-spacing: 4px;
   color: var(--cyan);
   text-shadow: 0 0 15px rgba(0,229,255,0.3);
+  text-transform: uppercase;
 }
 .logo-area .sub {
   font-family: 'IBM Plex Mono', monospace;
@@ -164,6 +165,13 @@ th {
   padding: 12px;
   border-bottom: 1px solid var(--border2);
   background: var(--s2);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s, background 0.2s;
+}
+th:hover {
+  color: var(--cyan);
+  background: var(--s3);
 }
 td {
   padding: 12px;
@@ -207,17 +215,23 @@ tr:hover td { background: rgba(0,229,255,0.02); }
   letter-spacing: 1px;
   margin-top: 20px;
 }
+
+.sort-icon {
+    font-size: 0.6rem;
+    margin-left: 5px;
+    opacity: 0.5;
+}
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="logo-area">
-    <h1>STANDARD AUTOMATA</h1>
-    <div class="sub">Operational Intelligence System // Tulsa, OK</div>
+    <h1>ADVANCED MACHINING</h1>
+    <div class="sub">Operational Intelligence System // Capacity Matrix</div>
   </div>
   <div style="font-family: 'IBM Plex Mono'; font-size: 0.65rem; color: var(--muted);">
-    [ STATUS: <span style="color:var(--green)">SECURE</span> ] [ <span id="clock">00:00:00</span> ]
+    [ STATUS: <span style="color:var(--green)">ACTIVE_OPTIMIZED</span> ] [ <span id="clock">00:00:00</span> ]
   </div>
 </div>
 
@@ -235,7 +249,7 @@ tr:hover td { background: rgba(0,229,255,0.02); }
     <div class="kpi-val" id="kpi-overdue">0</div>
   </div>
   <div class="kpi" style="--kc: var(--green)">
-    <div class="kpi-label">Capacity Delta</div>
+    <div class="kpi-label">System State</div>
     <div class="kpi-val">READY</div>
   </div>
 </div>
@@ -250,18 +264,18 @@ tr:hover td { background: rgba(0,229,255,0.02); }
     <div class="card">
       <div class="card-header">
         <div class="card-title">Production Queue Matrix</div>
-        <input type="text" id="tableSearch" placeholder="SEARCH_WO_ID..." 
+        <input type="text" id="tableSearch" placeholder="SEARCH_WO_ID..." oninput="renderTable()"
                style="background:var(--s2); border:1px solid var(--border); color:var(--text); padding:5px 10px; font-family:'IBM Plex Mono'; font-size:0.65rem; outline:none;">
       </div>
       <table id="woTable">
         <thead>
           <tr>
-            <th>WO_IDENT</th>
-            <th>WORK_CENTER</th>
-            <th>OP_STEP</th>
-            <th>MUST_LEAVE</th>
-            <th>QTY_ORD</th>
-            <th>TARGET_HRS</th>
+            <th onclick="sortTable('wo')">WO_IDENT <span id="sort-wo" class="sort-icon">↕</span></th>
+            <th onclick="sortTable('wc')">WORK_CENTER <span id="sort-wc" class="sort-icon">↕</span></th>
+            <th onclick="sortTable('op')">OP_STEP <span id="sort-op" class="sort-icon">↕</span></th>
+            <th onclick="sortTable('leave')">MUST_LEAVE <span id="sort-leave" class="sort-icon">↕</span></th>
+            <th onclick="sortTable('qty')">QTY_ORD <span id="sort-qty" class="sort-icon">↕</span></th>
+            <th onclick="sortTable('target')">TARGET_HRS <span id="sort-target" class="sort-icon">↕</span></th>
             <th>CURRENT_STATUS</th>
           </tr>
         </thead>
@@ -292,6 +306,7 @@ tr:hover td { background: rgba(0,229,255,0.02); }
 let rawData = [];
 let headers = [];
 let schedule = JSON.parse(localStorage.getItem('sa_schedule') || '[]');
+let currentSort = { key: 'leave', dir: 1 }; // Default sort by date
 
 // ── INIT ──
 window.onload = () => {
@@ -305,10 +320,53 @@ function setTab(name) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
+  const target = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.toLowerCase().includes(name));
+  if(target) target.classList.add('active');
 }
 
-// ── PROCESSING ──
+// ── SORTING LOGIC ──
+function sortTable(key) {
+  if (currentSort.key === key) {
+    currentSort.dir *= -1;
+  } else {
+    currentSort.key = key;
+    currentSort.dir = 1;
+  }
+  
+  // Update UI Icons
+  document.querySelectorAll('.sort-icon').forEach(i => i.textContent = '↕');
+  const icon = document.getElementById(`sort-${key}`);
+  if(icon) icon.textContent = currentSort.dir === 1 ? '▲' : '▼';
+
+  schedule.sort((a, b) => {
+    let valA = a[key];
+    let valB = b[key];
+
+    // Handle Numbers
+    if (key === 'target' || key === 'qty' || key === 'op') {
+        valA = parseFloat(valA) || 0;
+        valB = parseFloat(valB) || 0;
+    }
+    // Handle Dates
+    else if (key === 'leave') {
+        valA = valA ? new Date(valA) : new Date(0);
+        valB = valB ? new Date(valB) : new Date(0);
+    }
+    // Handle Strings
+    else {
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+    }
+
+    if (valA < valB) return -1 * currentSort.dir;
+    if (valA > valB) return 1 * currentSort.dir;
+    return 0;
+  });
+
+  renderTable();
+}
+
+// ── FILE PROCESSING ──
 function processFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -368,11 +426,15 @@ function injectData() {
 
 function renderTable() {
   const tbody = document.getElementById('woBody');
+  const search = document.getElementById('tableSearch').value.toLowerCase();
   tbody.innerHTML = '';
+  
   let totalHours = 0;
   let criticalCount = 0;
 
   schedule.forEach(row => {
+    if (search && !row.wo.toString().toLowerCase().includes(search)) return;
+
     totalHours += row.target;
     const isOverdue = row.leave && new Date(row.leave) < new Date();
     if (isOverdue) criticalCount++;
