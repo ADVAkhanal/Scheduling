@@ -717,10 +717,20 @@ function toggleWC(wc, el) {
 }
 
 function resetFilters() {
-  activeCSFilters = new Set(); activeCustomers = new Set(); activeWCs = new Set(); showOverdueOnly = false;
+  activeCSFilters = new Set(); 
+  activeCustomers = new Set(); 
+  activeWCs = new Set(); 
+  showOverdueOnly = false;
   document.getElementById('searchBox').value = '';
-  document.querySelectorAll('.filter-chip').forEach(el => el.className = 'filter-chip');
-  document.querySelectorAll('.wc-item').forEach(el => el.className = 'wc-item');
+  
+  // Clean up all the visual highlights in the sidebar
+  document.querySelectorAll('.filter-chip').forEach(el => { el.className = 'filter-chip'; });
+  document.querySelectorAll('.wc-item').forEach(el => { el.className = 'wc-item'; });
+  
+  // Special reset for the overdue toggle
+  const odChip = document.getElementById('overdueChip');
+  if(odChip) odChip.className = 'filter-chip';
+  
   applyFilters();
 }
 
