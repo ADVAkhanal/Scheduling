@@ -6,510 +6,563 @@
 <title>Advanced Shop Floor Mirror</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
 
-  :root {
-    --bg: #070b12;
-    --bg2: #0c1220;
-    --bg3: #111827;
-    --surface: #161e30;
-    --surface2: #1c2540;
-    --border: #1e2d4a;
-    --border2: #2a3d60;
-    --accent: #00cfff;
-    --accent2: #0099cc;
-    --green: #00e676;
-    --yellow: #ffb300;
-    --orange: #ff9800;
-    --red: #ff3d57;
-    --purple: #9c6cf7;
-    --teal: #4dd0e1;
-    --text: #dde4f0;
-    --text2: #a8bdd0;
-    --text3: #6a82a0;
-    --glow-accent: 0 0 24px rgba(0,207,255,0.18);
-    --glow-green: 0 0 18px rgba(0,230,118,0.2);
-  }
+  :root {
+    --bg: #070b12;
+    --bg2: #0c1220;
+    --bg3: #111827;
+    --surface: #161e30;
+    --surface2: #1c2540;
+    --border: #1e2d4a;
+    --border2: #2a3d60;
+    --accent: #00cfff;
+    --accent2: #0099cc;
+    --green: #00e676;
+    --yellow: #ffb300;
+    --orange: #ff9800;
+    --red: #ff3d57;
+    --purple: #9c6cf7;
+    --teal: #4dd0e1;
+    --text: #dde4f0;
+    --text2: #a8bdd0;
+    --text3: #6a82a0;
+    --glow-accent: 0 0 24px rgba(0,207,255,0.18);
+    --glow-green: 0 0 18px rgba(0,230,118,0.2);
+  }
 
-  * { margin:0; padding:0; box-sizing:border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; }
 
-  body {
-    font-family: 'Exo 2', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+  body {
+    font-family: 'Exo 2', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-  body::before {
-    content:'';
-    position:fixed; inset:0;
-    background-image:
-      linear-gradient(rgba(0,207,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,207,255,0.025) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events:none; z-index:0;
-  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(0,207,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,207,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events:none; z-index:0;
+  }
 
-  body::after {
-    content:'';
-    position:fixed; inset:0;
-    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,120,180,0.08) 0%, transparent 70%);
-    pointer-events:none; z-index:0;
-  }
+  body::after {
+    content:'';
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,120,180,0.08) 0%, transparent 70%);
+    pointer-events:none; z-index:0;
+  }
 
-  #app { position:relative; z-index:1; display:flex; flex-direction:column; height:100vh; }
+  #app { position:relative; z-index:1; display:flex; flex-direction:column; height:100vh; }
 
-  /* ── HEADER ── */
-  header {
-    background: linear-gradient(180deg, #0d1828 0%, var(--bg2) 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 0 28px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    height: 60px;
-    flex-shrink: 0;
-    box-shadow: 0 2px 24px rgba(0,0,0,0.7);
-  }
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(180deg, #0d1828 0%, var(--bg2) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    height: 60px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.7);
+  }
 
-  .logo {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--accent);
-    text-shadow: 0 0 28px rgba(0,207,255,0.6);
-    white-space: nowrap;
-  }
-  .logo em { color: var(--text2); font-style:normal; }
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: 0 0 28px rgba(0,207,255,0.6);
+    white-space: nowrap;
+  }
+  .logo em { color: var(--text2); font-style:normal; }
 
-  .logo-sub {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 3px;
-    color: #7eb8d4;
-    text-transform: uppercase;
-    margin-top: 3px;
-    text-shadow: 0 0 12px rgba(0,180,220,0.4);
-  }
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #7eb8d4;
+    text-transform: uppercase;
+    margin-top: 3px;
+    text-shadow: 0 0 12px rgba(0,180,220,0.4);
+  }
 
-  .header-sep { width:1px; height:32px; background: var(--border); margin: 0 4px; }
+  .header-sep { width:1px; height:32px; background: var(--border); margin: 0 4px; }
 
-  .live-badge {
-    display: flex; align-items: center; gap: 6px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px; color: var(--green);
-    letter-spacing: 1px;
-  }
-  .live-dot {
-    width:6px; height:6px; border-radius:50%;
-    background: var(--green);
-    box-shadow: 0 0 8px var(--green);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--green);
+    letter-spacing: 1px;
+  }
+  .live-dot {
+    width:6px; height:6px; border-radius:50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  .date-badge {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px; color: var(--text3); letter-spacing: 1px;
-  }
+  .date-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--text3); letter-spacing: 1px;
+  }
 
-  .header-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .header-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
 
-  .btn {
-    padding: 7px 16px;
-    border-radius: 4px;
-    font-family: 'Exo 2', sans-serif;
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    cursor: pointer; transition: all 0.2s; border: none;
-  }
-  .btn-ghost {
-    background: transparent;
-    border: 1px solid var(--border2);
-    color: var(--text2);
-  }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,207,255,0.06); }
-  .btn-primary { background: var(--accent); color: #000; font-weight: 800; }
-  .btn-primary:hover { background: #33daff; box-shadow: var(--glow-accent); }
+  .btn {
+    padding: 7px 16px;
+    border-radius: 4px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s; border: none;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,207,255,0.06); }
+  .btn-primary { background: var(--accent); color: #000; font-weight: 800; }
+  .btn-primary:hover { background: #33daff; box-shadow: var(--glow-accent); }
 
-  /* ── KPI STRIP ── */
-  .kpi-strip {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .kpi-card {
-    background: var(--bg2);
-    padding: 14px 20px;
-    display: flex; flex-direction: column; gap: 3px;
-    transition: background 0.2s;
-  }
-  .kpi-card:hover { background: var(--bg3); }
-  .kpi-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px; color: var(--text3);
-    letter-spacing: 2px; text-transform: uppercase;
-  }
-  .kpi-value {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 30px; font-weight: 700; line-height: 1;
-  }
-  .kpi-sub { font-size: 12px; color: var(--text2); }
+  /* ── KPI STRIP ── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .kpi-card {
+    background: var(--bg2);
+    padding: 14px 20px;
+    display: flex; flex-direction: column; gap: 3px;
+    transition: background 0.2s;
+  }
+  .kpi-card:hover { background: var(--bg3); }
+  .kpi-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--text3);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .kpi-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 30px; font-weight: 700; line-height: 1;
+  }
+  .kpi-sub { font-size: 12px; color: var(--text2); }
 
-  /* ── MAIN LAYOUT ── */
-  .main-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    flex: 1;
-    overflow: hidden;
-  }
+  /* ── MAIN LAYOUT ── */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    flex: 1;
+    overflow: hidden;
+  }
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    padding: 14px;
-    display: flex; flex-direction: column; gap: 14px;
-  }
-  .sidebar::-webkit-scrollbar { width: 3px; }
-  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-  .filter-group h4 {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px; letter-spacing: 2px;
-    color: var(--text2); text-transform: uppercase;
-    margin-bottom: 8px; padding-bottom: 5px;
-    border-bottom: 1px solid var(--border);
-  }
+  .filter-group h4 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--text2); text-transform: uppercase;
+    margin-bottom: 8px; padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+  }
 
-  .search-box {
-    width: 100%;
-    padding: 8px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: 'Exo 2', sans-serif;
-    font-size: 12px; outline: none;
-    transition: border-color 0.2s;
-  }
-  .search-box:focus { border-color: var(--accent); }
-  .search-box::placeholder { color: var(--text3); }
+  .search-box {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text3); }
 
-  .filter-chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 10px; border-radius: 3px;
-    font-size: 12px; font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--bg); color: var(--text2);
-    transition: all 0.15s; margin: 2px;
-    letter-spacing: 0.5px;
-  }
-  .filter-chip:hover { border-color: var(--border2); color: var(--text); }
-  .filter-chip.fc-active { border-color: var(--accent); color: var(--accent); background: rgba(0,207,255,0.08); }
-  .filter-chip.fc-overdue { border-color: var(--red); color: var(--red); background: rgba(255,61,87,0.08); }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 3px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg); color: var(--text2);
+    transition: all 0.15s; margin: 2px;
+    letter-spacing: 0.5px;
+  }
+  .filter-chip:hover { border-color: var(--border2); color: var(--text); }
+  .filter-chip.fc-active { border-color: var(--accent); color: var(--accent); background: rgba(0,207,255,0.08); }
+  .filter-chip.fc-overdue { border-color: var(--red); color: var(--red); background: rgba(255,61,87,0.08); }
 
-  .wc-list { display:flex; flex-direction:column; gap:2px; max-height:280px; overflow-y:auto; }
-  .wc-list::-webkit-scrollbar { width:3px; }
-  .wc-list::-webkit-scrollbar-thumb { background: var(--border2); }
+  .wc-list { display:flex; flex-direction:column; gap:2px; max-height:280px; overflow-y:auto; }
+  .wc-list::-webkit-scrollbar { width:3px; }
+  .wc-list::-webkit-scrollbar-thumb { background: var(--border2); }
 
-  .wc-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 8px; border-radius: 3px;
-    cursor: pointer; font-size: 12px; color: var(--text2);
-    transition: all 0.15s;
-  }
-  .wc-item:hover { background: var(--surface); color: var(--text); }
-  .wc-item.selected { background: rgba(0,207,255,0.07); color: var(--accent); }
-  .wc-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-  .wc-count { margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text3); }
+  .wc-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 3px;
+    cursor: pointer; font-size: 12px; color: var(--text2);
+    transition: all 0.15s;
+  }
+  .wc-item:hover { background: var(--surface); color: var(--text); }
+  .wc-item.selected { background: rgba(0,207,255,0.07); color: var(--accent); }
+  .wc-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .wc-count { margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text3); }
 
-  /* ── CONTENT ── */
-  .content-area { display:flex; flex-direction:column; overflow:hidden; }
+  /* ── CONTENT ── */
+  .content-area { display:flex; flex-direction:column; overflow:hidden; }
 
-  .tabs {
-    display:flex; background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 0 20px; flex-shrink:0;
-  }
-  .tab {
-    padding: 11px 18px;
-    font-size: 12px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--text2); cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s; white-space: nowrap;
-  }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tabs {
+    display:flex; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px; flex-shrink:0;
+  }
+  .tab {
+    padding: 11px 18px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text2); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-  /* ── TABLE VIEW ── */
-  .table-wrap { flex:1; overflow:auto; }
-  .table-wrap::-webkit-scrollbar { width:5px; height:5px; }
-  .table-wrap::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+  /* ── TABLE VIEW ── */
+  .table-wrap { flex:1; overflow:auto; }
+  .table-wrap::-webkit-scrollbar { width:5px; height:5px; }
+  .table-wrap::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
 
-  table { width:100%; border-collapse:collapse; font-size:12px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
 
-  thead { position:sticky; top:0; z-index:10; background:var(--bg3); }
+  thead { position:sticky; top:0; z-index:10; background:var(--bg3); }
 
-  th {
-    padding: 9px 13px;
-    text-align: left;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px; letter-spacing: 1.5px;
-    color: var(--text2); text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap; cursor: pointer;
-    user-select: none; transition: color 0.15s;
-  }
-  th:hover { color: var(--accent); }
+  th {
+    padding: 9px 13px;
+    text-align: left;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1.5px;
+    color: var(--text2); text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap; cursor: pointer;
+    user-select: none; transition: color 0.15s;
+  }
+  th:hover { color: var(--accent); }
 
-  tbody tr { border-bottom: 1px solid rgba(30,45,74,0.7); transition: background 0.1s; }
-  tbody tr:hover { background: var(--surface); }
+  tbody tr { border-bottom: 1px solid rgba(30,45,74,0.7); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface); }
 
-  td {
-    padding: 8px 13px; color: var(--text2);
-    white-space: nowrap; overflow: hidden;
-    text-overflow: ellipsis; max-width: 200px;
-    vertical-align: middle;
-  }
+  td {
+    padding: 8px 13px; color: var(--text2);
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 200px;
+    vertical-align: middle;
+  }
 
-  .td-wo { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--accent); font-weight:700; }
-  .td-part { color:var(--text); font-size:11px; }
-  .td-hours { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text); }
+  .td-wo { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--accent); font-weight:700; }
+  .td-part { color:var(--text); font-size:11px; }
+  .td-hours { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text); }
 
-  .overdue-flag {
-    display:inline-block; padding:1px 5px; border-radius:2px;
-    font-size:9px; font-weight:700; letter-spacing:1px;
-    background:rgba(255,61,87,0.15); color:var(--red);
-    border:1px solid rgba(255,61,87,0.4); margin-left:4px;
-  }
+  .overdue-flag {
+    display:inline-block; padding:1px 5px; border-radius:2px;
+    font-size:9px; font-weight:700; letter-spacing:1px;
+    background:rgba(255,61,87,0.15); color:var(--red);
+    border:1px solid rgba(255,61,87,0.4); margin-left:4px;
+  }
 
-  /* ── CURRENT STATUS SELECT ── */
-  .cs-select {
-    appearance: none;
-    background: var(--bg);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    color: var(--text2);
-    font-family: 'Exo 2', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 3px 22px 3px 7px;
-    cursor: pointer;
-    outline: none;
-    transition: all 0.15s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23445566'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 6px center;
-    min-width: 130px;
-    letter-spacing: 0.3px;
-  }
-  .cs-select:focus { border-color: var(--accent); }
-  .cs-select:hover { border-color: var(--border2); color: var(--text); }
+  /* ── CURRENT STATUS SELECT ── */
+  .cs-select {
+    appearance: none;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text2);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 22px 3px 7px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23445566'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    min-width: 130px;
+    letter-spacing: 0.3px;
+  }
+  .cs-select:focus { border-color: var(--accent); }
+  .cs-select:hover { border-color: var(--border2); color: var(--text); }
 
-  .cs-incycle      { border-color: rgba(0,230,118,0.5); color: #00e676; background-color: rgba(0,230,118,0.06); }
-  .cs-inqueue      { border-color: rgba(0,207,255,0.5); color: #00cfff; background-color: rgba(0,207,255,0.06); }
-  .cs-inspection   { border-color: rgba(156,108,247,0.5); color: #9c6cf7; background-color: rgba(156,108,247,0.06); }
-  .cs-nooperator   { border-color: rgba(255,179,0,0.5); color: #ffb300; background-color: rgba(255,179,0,0.06); }
-  .cs-material     { border-color: rgba(255,152,0,0.5); color: #ff9800; background-color: rgba(255,152,0,0.06); }
-  .cs-maintenance { border-color: rgba(255,112,67,0.5); color: #ff7043; background-color: rgba(255,112,67,0.06); }
-  .cs-breakdown   { border-color: rgba(255,61,87,0.5); color: #ff3d57; background-color: rgba(255,61,87,0.08); }
+  /* colored when set */
+  .cs-incycle     { border-color: rgba(0,230,118,0.5); color: #00e676; background-color: rgba(0,230,118,0.06); }
+  .cs-inqueue     { border-color: rgba(0,207,255,0.5); color: #00cfff; background-color: rgba(0,207,255,0.06); }
+  .cs-inspection  { border-color: rgba(156,108,247,0.5); color: #9c6cf7; background-color: rgba(156,108,247,0.06); }
+  .cs-nooperator  { border-color: rgba(255,179,0,0.5); color: #ffb300; background-color: rgba(255,179,0,0.06); }
+  .cs-material    { border-color: rgba(255,152,0,0.5); color: #ff9800; background-color: rgba(255,152,0,0.06); }
+  .cs-maintenance { border-color: rgba(255,112,67,0.5); color: #ff7043; background-color: rgba(255,112,67,0.06); }
+  .cs-breakdown   { border-color: rgba(255,61,87,0.5); color: #ff3d57; background-color: rgba(255,61,87,0.08); }
+  .cs-tech        { border-color: rgba(240,98,146,0.5); color: #f06292; background-color: rgba(240,98,146,0.06); }
+  .cs-eng         { border-color: rgba(186,104,200,0.5); color: #ba68c8; background-color: rgba(186,104,200,0.06); }
+  .cs-tooling     { border-color: rgba(77,208,225,0.5); color: #4dd0e1; background-color: rgba(77,208,225,0.06); }
 
-  /* ── PAGINATION ── */
-  .pagination {
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 9px 20px;
-    background: var(--bg2); border-top: 1px solid var(--border);
-    font-size: 11px; color: var(--text3); flex-shrink:0;
-  }
-  .page-controls { display:flex; gap:3px; align-items:center; }
-  .page-btn {
-    padding: 4px 10px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 3px; color: var(--text2);
-    cursor: pointer; font-size: 11px; transition: all 0.15s;
-  }
-  .page-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .page-btn.active { background: rgba(0,207,255,0.1); border-color: var(--accent); color: var(--accent); }
-  .page-btn:disabled { opacity:0.3; cursor:default; }
+  /* ── PAGINATION ── */
+  .pagination {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 9px 20px;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text3); flex-shrink:0;
+  }
+  .page-controls { display:flex; gap:3px; align-items:center; }
+  .page-btn {
+    padding: 4px 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; color: var(--text2);
+    cursor: pointer; font-size: 11px; transition: all 0.15s;
+  }
+  .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: rgba(0,207,255,0.1); border-color: var(--accent); color: var(--accent); }
+  .page-btn:disabled { opacity:0.3; cursor:default; }
 
-  /* ── WC GRID ── */
-  .wc-grid {
-    flex:1; overflow-y:auto; padding:14px;
-    display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap:10px; align-content:start;
-  }
-  .wc-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px;
-    transition: all 0.2s; cursor: pointer;
-  }
-  .wc-card:hover { border-color: var(--border2); box-shadow: var(--glow-accent); transform: translateY(-1px); }
-  .wc-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
-  .wc-card-name { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.3; flex:1; }
-  .wc-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
-  .wc-metric { background:var(--bg2); border-radius:4px; padding:7px; text-align:center; }
-  .wc-metric-val { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; line-height:1; }
-  .wc-metric-lbl { font-size:10px; font-family:'Share Tech Mono',monospace; color:var(--text2); letter-spacing:1px; margin-top:2px; }
-  .hour-bar { height:3px; background:var(--bg); border-radius:2px; overflow:hidden; margin-bottom:4px; }
-  .hour-bar-fill { height:100%; border-radius:2px; transition:width 0.4s ease; }
-  .wc-bar-label { display:flex; justify-content:space-between; font-size:11px; color:var(--text2); font-family:'Share Tech Mono',monospace; }
+  /* ── WC GRID ── */
+  .wc-grid {
+    flex:1; overflow-y:auto; padding:14px;
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap:10px; align-content:start;
+  }
+  .wc-grid::-webkit-scrollbar { width:5px; }
+  .wc-grid::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
 
-  /* ── CUSTOMER VIEW ── */
-  .cust-view { flex:1; overflow-y:auto; }
-  .cust-table { width:100%; border-collapse:collapse; }
-  .cust-table th { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1.5px; color:var(--text2); text-transform:uppercase; padding:9px 16px; text-align:left; border-bottom:1px solid var(--border); background:var(--bg3); position:sticky; top:0; }
-  .cust-table td { padding:9px 16px; border-bottom:1px solid rgba(30,45,74,0.5); font-size:12px; vertical-align:middle; }
-  .mini-bar { height:5px; background:var(--bg); border-radius:3px; overflow:hidden; width:90px; display:inline-block; vertical-align:middle; margin-left:8px; }
-  .mini-bar-fill { height:100%; border-radius:3px; }
+  .wc-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .wc-card:hover { border-color: var(--border2); box-shadow: var(--glow-accent); transform: translateY(-1px); }
 
-  /* ── TIMELINE ── */
-  .timeline-view { flex:1; overflow:auto; padding:14px; }
-  .gantt-container { min-width:900px; }
-  .gantt-header-row { display:flex; margin-bottom:4px; padding-left:180px; }
-  .gantt-month { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text2); letter-spacing:1px; text-transform:uppercase; flex-shrink:0; text-align:center; border-left:1px solid var(--border); padding:4px 2px; }
-  .gantt-row { display:flex; align-items:center; margin-bottom:5px; height:34px; }
-  .gantt-label { width:180px; flex-shrink:0; font-size:12px; color:var(--text2); padding-right:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .gantt-track { flex:1; height:100%; background:var(--bg2); border-radius:3px; position:relative; overflow:hidden; }
-  .gantt-bar { position:absolute; top:4px; height:calc(100% - 8px); border-radius:3px; opacity:0.8; transition:opacity 0.15s; display:flex; align-items:center; padding:0 5px; font-size:9px; font-weight:700; color:rgba(0,0,0,0.8); overflow:hidden; white-space:nowrap; }
-  .today-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:5; opacity:0.8; }
+  .wc-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .wc-card-name { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.3; flex:1; }
+  .wc-machine-type {
+    font-size:9px; font-family:'Share Tech Mono',monospace;
+    color:var(--accent); background:rgba(0,207,255,0.08);
+    border:1px solid rgba(0,207,255,0.2); padding:2px 6px; border-radius:2px;
+    white-space:nowrap; margin-left:8px;
+  }
+  .wc-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+  .wc-metric { background:var(--bg2); border-radius:4px; padding:7px; text-align:center; }
+  .wc-metric-val { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; line-height:1; }
+  .wc-metric-lbl { font-size:10px; font-family:'Share Tech Mono',monospace; color:var(--text2); letter-spacing:1px; margin-top:2px; }
+  .hour-bar { height:3px; background:var(--bg); border-radius:2px; overflow:hidden; margin-bottom:4px; }
+  .hour-bar-fill { height:100%; border-radius:2px; transition:width 0.4s ease; }
+  .wc-bar-label { display:flex; justify-content:space-between; font-size:11px; color:var(--text2); font-family:'Share Tech Mono',monospace; }
 
-  /* ── UPLOAD MODAL ── */
-  .upload-zone { display:none; position:fixed; inset:0; background:rgba(7,11,18,0.92); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
-  .upload-zone.open { display:flex; }
-  .upload-modal { background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:36px; width:460px; box-shadow:0 20px 60px rgba(0,0,0,0.9); position:relative; }
-  .drop-area { border:2px dashed var(--border2); border-radius:8px; padding:36px 20px; text-align:center; cursor:pointer; background:var(--bg2); }
-  .upload-status { margin-top:14px; font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--green); text-align:center; }
+  /* ── CUSTOMER VIEW ── */
+  .cust-view { flex:1; overflow-y:auto; }
+  .cust-view::-webkit-scrollbar { width:5px; }
+  .cust-view::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+  .cust-table { width:100%; border-collapse:collapse; }
+  .cust-table th {
+    font-family:'Share Tech Mono',monospace; font-size:11px;
+    letter-spacing:1.5px; color:var(--text2); text-transform:uppercase;
+    padding:9px 16px; text-align:left; border-bottom:1px solid var(--border);
+    background:var(--bg3); position:sticky; top:0;
+  }
+  .cust-table td { padding:9px 16px; border-bottom:1px solid rgba(30,45,74,0.5); font-size:12px; vertical-align:middle; }
+  .cust-table tr:hover td { background:var(--surface); }
+  .mini-bar { height:5px; background:var(--bg); border-radius:3px; overflow:hidden; width:90px; display:inline-block; vertical-align:middle; margin-left:8px; }
+  .mini-bar-fill { height:100%; border-radius:3px; }
 
-  @media (max-width:900px) {
-    .kpi-strip { grid-template-columns: repeat(4,1fr); }
-    .main-layout { grid-template-columns:1fr; }
-    .sidebar { display:none; }
-  }
+  /* ── TIMELINE ── */
+  .timeline-view { flex:1; overflow:auto; padding:14px; }
+  .gantt-container { min-width:900px; }
+  .gantt-header-row { display:flex; margin-bottom:4px; padding-left:180px; }
+  .gantt-month { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text2); letter-spacing:1px; text-transform:uppercase; flex-shrink:0; text-align:center; border-left:1px solid var(--border); padding:4px 2px; }
+  .gantt-row { display:flex; align-items:center; margin-bottom:5px; height:34px; }
+  .gantt-label { width:180px; flex-shrink:0; font-size:12px; color:var(--text2); padding-right:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gantt-track { flex:1; height:100%; background:var(--bg2); border-radius:3px; position:relative; overflow:hidden; }
+  .gantt-bar { position:absolute; top:4px; height:calc(100% - 8px); border-radius:3px; opacity:0.8; transition:opacity 0.15s; display:flex; align-items:center; padding:0 5px; font-size:9px; font-weight:700; color:rgba(0,0,0,0.8); overflow:hidden; white-space:nowrap; min-width:2px; }
+  .gantt-bar:hover { opacity:1; }
+  .today-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:5; opacity:0.8; }
+
+  /* ── UPLOAD MODAL ── */
+  .upload-zone { display:none; position:fixed; inset:0; background:rgba(7,11,18,0.92); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+  .upload-zone.open { display:flex; }
+  .upload-modal { background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:36px; width:460px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,0.9); position:relative; }
+  .upload-modal h2 { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+  .upload-modal p { color:var(--text2); font-size:12px; margin-bottom:20px; line-height:1.6; }
+  .drop-area { border:2px dashed var(--border2); border-radius:8px; padding:36px 20px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--bg2); }
+  .drop-area:hover, .drop-area.drag-over { border-color:var(--accent); background:rgba(0,207,255,0.04); }
+  .drop-area .drop-icon { font-size:32px; margin-bottom:10px; }
+  .drop-area p { color:var(--text2); font-size:12px; margin-bottom:0; }
+  .drop-area input[type=file] { display:none; }
+  .upload-status { margin-top:14px; font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--green); min-height:18px; text-align:center; }
+  .upload-actions { margin-top:18px; display:flex; gap:8px; justify-content:flex-end; }
+  .close-btn { position:absolute; top:14px; right:14px; background:none; border:none; color:var(--text3); font-size:18px; cursor:pointer; padding:4px 8px; border-radius:4px; transition:color 0.2s; }
+  .close-btn:hover { color:var(--text); }
 </style>
 </head>
 <body>
 <div id="app">
 
-  <header>
-    <div>
-      <div class="logo">Advanced<em> //</em> Shop Floor Mirror</div>
-      <div class="logo-sub">Production Intelligence Platform</div>
-    </div>
-    <div class="header-sep"></div>
-    <div class="live-badge"><div class="live-dot"></div>SYNCED</div>
-    <div class="header-sep"></div>
-    <div class="date-badge" id="dateBadge"></div>
-    <div class="header-actions">
-      <button class="btn btn-ghost" onclick="openUpload()">⬆ Upload Schedule</button>
-      <button class="btn btn-ghost" onclick="exportFiltered()">⬇ Export</button>
-    </div>
-  </header>
+    <header>
+    <div>
+      <div class="logo">Advanced<em> //</em> Shop Floor Mirror</div>
+      <div class="logo-sub">CNC Production Intelligence Platform</div>
+    </div>
+    <div class="header-sep"></div>
+    <div class="live-badge"><div class="live-dot"></div>SYNCED</div>
+    <div class="header-sep"></div>
+    <div class="date-badge" id="dateBadge"></div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="openUpload()">⬆ Upload Schedule</button>
+      <button class="btn btn-ghost" onclick="exportFiltered()">⬇ Export</button>
+    </div>
+  </header>
 
-  <div class="upload-zone" id="uploadZone">
-    <div class="upload-modal">
-      <button class="btn btn-ghost" style="position:absolute;top:10px;right:10px" onclick="closeUpload()">✕</button>
-      <h2>Upload New Schedule</h2>
-      <p style="font-size:12px; color:var(--text2); margin-bottom:20px;">Upload a weekly XLSX file. Data will be saved to the server permanently.</p>
-      <div class="drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
-        <div style="font-size:32px">📋</div>
-        <p><strong>Click to browse</strong> or drag & drop .xlsx file</p>
-        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(event)" style="display:none">
-      </div>
-      <div class="upload-status" id="uploadStatus"></div>
-    </div>
-  </div>
+    <div class="upload-zone" id="uploadZone">
+    <div class="upload-modal">
+      <button class="close-btn" onclick="closeUpload()">✕</button>
+      <h2>Upload Weekly Update</h2>
+      <p>Upload a .xlsx file. The data will be saved to the shop floor database permanently.</p>
+      <div class="drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+        <div class="drop-icon">📋</div>
+        <p><strong>Click to browse</strong> or drag & drop your .xlsx file here</p>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(event)">
+      </div>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+  </div>
 
-  <div class="kpi-strip" id="kpiStrip"></div>
+    <div class="kpi-strip" id="kpiStrip"></div>
 
-  <div class="main-layout">
-    <div class="sidebar">
-      <div class="filter-group">
-        <h4>Search</h4>
-        <input class="search-box" type="text" placeholder="WO#, Part, Customer…" id="searchBox" oninput="applyFilters()">
-      </div>
-      <div class="filter-group">
-        <h4>Current Status</h4>
-        <div id="csFilters" style="max-height:220px;overflow-y:auto;"></div>
-      </div>
-      <div class="filter-group">
-        <h4>Overdue</h4>
-        <div id="overdueFilter"></div>
-      </div>
-      <div class="filter-group">
-        <h4>Customer</h4>
-        <div id="customerFilters" style="max-height:180px;overflow-y:auto;"></div>
-      </div>
-      <div class="filter-group">
-        <h4>Work Center</h4>
-        <div class="wc-list" id="wcFilters"></div>
-      </div>
-      <button class="btn btn-ghost" style="width:100%;margin-top:auto;" onclick="resetFilters()">↺ Reset Filters</button>
-    </div>
+    <div class="main-layout">
 
-    <div class="content-area">
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab('schedule',this)">Schedule Table</div>
-        <div class="tab" onclick="switchTab('workcenters',this)">Work Centers</div>
-        <div class="tab" onclick="switchTab('customers',this)">By Customer</div>
-        <div class="tab" onclick="switchTab('timeline',this)">Timeline</div>
-      </div>
+        <div class="sidebar">
+      <div class="filter-group">
+        <h4>Search</h4>
+        <input class="search-box" type="text" placeholder="WO#, Part, Customer…" id="searchBox" oninput="applyFilters()">
+      </div>
 
-      <div id="tab-schedule" class="tab-content" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-        <div class="table-wrap" id="tableContainer">
-          <table id="mainTable">
-            <thead>
-              <tr>
-                <th onclick="sortBy('wo')">WO # ↕</th>
-                <th onclick="sortBy('part')">Part ↕</th>
-                <th onclick="sortBy('workCenter')">Work Center ↕</th>
-                <th onclick="sortBy('op')">Op ↕</th>
-                <th onclick="sortBy('customer')">Customer ↕</th>
-                <th onclick="sortBy('mustLeaveBy')">Must Leave By ↕</th>
-                <th onclick="sortBy('targetHours')">Hours ↕</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-          </table>
-        </div>
-        <div class="pagination" id="pagination"></div>
-      </div>
+      <div class="filter-group">
+        <h4>Current Status</h4>
+        <div id="csFilters" style="max-height:220px;overflow-y:auto;"></div>
+      </div>
 
-      <div id="tab-workcenters" class="tab-content" style="display:none;flex:1;overflow-y:auto;">
-        <div class="wc-grid" id="wcGrid"></div>
-      </div>
+      <div class="filter-group">
+        <h4>Overdue</h4>
+        <div id="overdueFilter"></div>
+      </div>
 
-      <div id="tab-customers" class="tab-content" style="display:none;flex:1;overflow-y:auto;">
-        <div class="cust-view">
-          <table class="cust-table">
-            <thead><tr><th>Customer</th><th>Work Orders</th><th>Total Hours</th><th>Hours Bar</th></tr></thead>
-            <tbody id="custBody"></tbody>
-          </table>
-        </div>
-      </div>
+      <div class="filter-group">
+        <h4>Customer</h4>
+        <div id="customerFilters" style="max-height:180px;overflow-y:auto;"></div>
+      </div>
 
-      <div id="tab-timeline" class="tab-content" style="display:none;flex:1;overflow-y:auto;">
-        <div class="timeline-view" id="timelineView"></div>
-      </div>
-    </div>
-  </div>
+      <div class="filter-group">
+        <h4>Work Center</h4>
+        <div class="wc-list" id="wcFilters"></div>
+      </div>
+
+      <button class="btn btn-ghost" style="width:100%;margin-top:auto;" onclick="resetFilters()">↺ Reset Filters</button>
+    </div>
+
+        <div class="content-area">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('schedule',this)">Schedule Table</div>
+        <div class="tab" onclick="switchTab('workcenters',this)">Work Centers</div>
+        <div class="tab" onclick="switchTab('customers',this)">By Customer</div>
+        <div class="tab" onclick="switchTab('timeline',this)">Timeline</div>
+      </div>
+
+      <div id="tab-schedule" class="tab-content" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="table-wrap" id="tableContainer">
+          <table id="mainTable">
+            <thead>
+              <tr>
+                <th onclick="sortBy('wo')">WO # ↕</th>
+                <th onclick="sortBy('part')">Part ↕</th>
+                <th onclick="sortBy('workCenter')">Work Center ↕</th>
+                <th onclick="sortBy('op')">Op ↕</th>
+                <th onclick="sortBy('customer')">Customer ↕</th>
+                <th onclick="sortBy('mustLeaveBy')">Must Leave By ↕</th>
+                <th onclick="sortBy('custDue')">Cust. Due ↕</th>
+                <th onclick="sortBy('targetHours')">Hours ↕</th>
+                <th onclick="sortBy('qty')">Qty ↕</th>
+                <th>Current Status</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+      <div id="tab-workcenters" class="tab-content" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+        <div class="wc-grid" id="wcGrid"></div>
+      </div>
+
+      <div id="tab-customers" class="tab-content" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+        <div class="cust-view">
+          <table class="cust-table">
+            <thead><tr>
+              <th>Customer</th><th>Work Orders</th><th>Ops</th>
+              <th>Total Hours</th><th>Overdue</th><th>Hours Bar</th>
+            </tr></thead>
+            <tbody id="custBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-timeline" class="tab-content" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+        <div class="timeline-view" id="timelineView"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-const TODAY = new Date().toISOString().slice(0,10);
-const CS_OPTIONS = ['In Cycle','In Queue','At Inspection','No Operator','Waiting for Material','In Maintenance','Break Down'];
-const CS_CLASS = {'In Cycle':'cs-incycle','In Queue':'cs-inqueue','At Inspection':'cs-inspection','No Operator':'cs-nooperator','Waiting for Material':'cs-material','In Maintenance':'cs-maintenance','Break Down':'cs-breakdown'};
+const TODAY = '2026-03-25';
+const TODAY_DATE = new Date(TODAY);
 
+const CS_OPTIONS = [
+  'In Cycle','In Queue','At Inspection','No Operator',
+  'Waiting for Material','In Maintenance','Break Down',
+  'Waiting for Tech','Waiting for Eng Support','Waiting for Tooling'
+];
+
+const CS_CLASS = {
+  'In Cycle':'cs-incycle','In Queue':'cs-inqueue',
+  'At Inspection':'cs-inspection','No Operator':'cs-nooperator',
+  'Waiting for Material':'cs-material','In Maintenance':'cs-maintenance',
+  'Break Down':'cs-breakdown','Waiting for Tech':'cs-tech',
+  'Waiting for Eng Support':'cs-eng','Waiting for Tooling':'cs-tooling'
+};
+
+const csStore = {};
 let ALL_DATA = [];
 let SCHEDULE_TOTALS = null;
 let filtered = [];
@@ -521,236 +574,283 @@ let activeCustomers = new Set();
 let activeWCs = new Set();
 let showOverdueOnly = false;
 
-// --- PERSISTENCE: SYNC ON LOAD ---
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('dateBadge').textContent = 'WEEK OF ' + TODAY;
-  loadFromServer();
-  setupDragDrop();
+// ── SYNC ON LOAD ──
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('dateBadge').textContent = 'WEEK OF ' + TODAY;
+  try {
+    const res = await fetch('/api/schedule');
+    const saved = await res.json();
+    if (saved && saved.rows) {
+      ALL_DATA = saved.rows;
+      SCHEDULE_TOTALS = saved.totals;
+    }
+  } catch(e) { console.log("Init: Using local data defaults."); }
+  
+  buildFilters();
+  applyFilters();
+  setupDragDrop();
 });
 
-async function loadFromServer() {
-  try {
-    const res = await fetch('/api/schedule');
-    const data = await res.json();
-    if (data && data.rows) {
-      ALL_DATA = data.rows;
-      SCHEDULE_TOTALS = data.totals;
-      console.log("Loaded weekly update from server.");
-    }
-  } catch (e) { console.warn("First load: No server data yet."); }
-  buildFilters();
-  applyFilters();
+function csKey(d) { return `${d.wo}|${d.op}`; }
+function getCS(d) { return csStore[csKey(d)] || null; }
+function setCS(d, val) { csStore[csKey(d)] = val || null; renderKPIs(); }
+
+function getWCColor(wc) {
+  const palette = ['#00cfff','#00e676','#ffb300','#9c6cf7','#ff6b6b','#26c6da','#69f0ae','#ffd54f','#ce93d8','#ef9a9a','#4dd0e1','#a5d6a7','#ffe082','#b39ddb','#ef9a9a','#80deea','#c8e6c9','#fff9c4','#d1c4e9','#ffcdd2','#b2ebf2','#e8f5e9'];
+  const wcs = [...new Set(ALL_DATA.map(d => d.workCenter).filter(Boolean))].sort();
+  return palette[wcs.indexOf(wc) % palette.length] || '#00cfff';
 }
 
-// --- FILE PROCESSING & SAVE ---
-function processFile(file) {
-  const status = document.getElementById('uploadStatus');
-  status.style.color = 'var(--accent)';
-  status.textContent = '⟳ Syncing schedule with server...';
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, {type:'array', cellDates:true});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'yyyy-mm-dd'});
-      const headers = rows[0];
-      const parsed = [];
-
-      for (let i=1; i<rows.length; i++) {
-        const r = rows[i];
-        if (!r || r.every(v => !v)) continue;
-        const gc = (names) => {
-          const idx = headers.findIndex(h => h && names.some(n => h.toString().toLowerCase().includes(n.toLowerCase())));
-          return idx >= 0 ? r[idx] : null;
-        };
-        const fd = v => (v && typeof v === 'string') ? v.slice(0,10) : null;
-        parsed.push({
-          wo: gc(['Work Order','WO #','WO#']),
-          part: gc(['Part #','Part']),
-          workCenter: gc(['Work Center']),
-          op: gc(['Op #','Op']),
-          qty: parseFloat(gc(['QtyOrdered','Qty']))||null,
-          customer: gc(['Customer']),
-          mustLeaveBy: fd(gc(['Must Leave','Leave By'])),
-          custDue: fd(gc(['Cust. Due','Due'])),
-          status: 'Active',
-          setupTime: parseFloat(gc(['Set-up','Setup']))||null,
-          targetHours: parseFloat(gc(['Hours']))||0,
-          notes: gc(['Notes']),
-          currentStatus: null
-        });
-      }
-
-      const rowsData = parsed.filter(d => d.wo !== 'TOTALS');
-      const totalsData = parsed.find(d => d.wo === 'TOTALS');
-
-      // POST to Node.js server
-      const saveRes = await fetch('/api/schedule', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ rows: rowsData, totals: totalsData, filename: file.name })
-      });
-
-      if (saveRes.ok) {
-        ALL_DATA = rowsData;
-        SCHEDULE_TOTALS = totalsData;
-        status.style.color = 'var(--green)';
-        status.textContent = '✓ Schedule updated and saved permanently.';
-        applyFilters();
-        setTimeout(closeUpload, 1500);
-      }
-    } catch(err) { status.style.color='var(--red)'; status.textContent='Error: ' + err.message; }
-  };
-  reader.readAsArrayBuffer(file);
+function getMachineType(wc) {
+  if (!wc) return '';
+  const w = wc.toUpperCase();
+  if (w.includes('5AX')||w.includes('5 AXIS')||w.includes('UMC')) return '5-AXIS';
+  if (w.includes('4AX')||w.includes('4ST')||w.includes('HCN')) return '4-AXIS';
+  if (w.includes('INTEGREX')||w.includes('MULTUS')||w.includes('3ST')) return 'MILL-TURN';
+  if (w.includes('QTN')||w.includes('QUICK TURN')||w.includes('HYUNDAI')||w.includes('L 21')) return 'LATHE';
+  if (w.includes('ROUTER')||w.includes('ONSRUD')||w.includes('KOMO')) return 'ROUTER';
+  if (w.includes('FMS')||w.includes('FASTEMS')) return 'FMS';
+  if (w.includes('VCN')||w.includes('FJV')) return '3-AXIS';
+  return 'CNC';
 }
 
-// --- RESTORED LOGIC ---
+function isOverdue(d) { return d.mustLeaveBy && d.mustLeaveBy < TODAY; }
+
+function buildFilters() {
+  const csDiv = document.getElementById('csFilters'); csDiv.innerHTML = '';
+  CS_OPTIONS.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'filter-chip' + (activeCSFilters.has(s) ? ' fc-active' : '');
+    el.textContent = s; el.onclick = () => toggleCSFilter(s, el);
+    csDiv.appendChild(el);
+  });
+
+  const odDiv = document.getElementById('overdueFilter'); odDiv.innerHTML = '';
+  const odChip = document.createElement('div');
+  odChip.className = 'filter-chip' + (showOverdueOnly ? ' fc-overdue' : '');
+  odChip.id = 'overdueChip';
+  const odCount = ALL_DATA.filter(isOverdue).length;
+  odChip.innerHTML = `⚠ Overdue Only <span style="opacity:.6;font-size:9px">${odCount}</span>`;
+  odChip.onclick = () => { showOverdueOnly = !showOverdueOnly; odChip.className = 'filter-chip' + (showOverdueOnly ? ' fc-overdue' : ''); applyFilters(); };
+  odDiv.appendChild(odChip);
+
+  const custDiv = document.getElementById('customerFilters'); custDiv.innerHTML = '';
+  const customers = [...new Set(ALL_DATA.map(d=>d.customer).filter(Boolean))].sort();
+  customers.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'filter-chip' + (activeCustomers.has(c) ? ' fc-active' : '');
+    const cnt = new Set(ALL_DATA.filter(d=>d.customer===c).map(d=>d.wo)).size;
+    el.innerHTML = `<span>${c.slice(0,20)}</span><span style="opacity:.6;font-size:9px">${cnt}</span>`;
+    el.onclick = () => toggleCustomer(c, el);
+    custDiv.appendChild(el);
+  });
+
+  const wcDiv = document.getElementById('wcFilters'); wcDiv.innerHTML = '';
+  const wcs = [...new Set(ALL_DATA.map(d=>d.workCenter).filter(Boolean))].sort();
+  wcs.forEach(wc => {
+    const el = document.createElement('div');
+    el.className = 'wc-item' + (activeWCs.has(wc) ? ' selected' : '');
+    const cnt = new Set(ALL_DATA.filter(d=>d.workCenter===wc).map(d=>d.wo)).size;
+    el.innerHTML = `<div class="wc-dot" style="background:${getWCColor(wc)}"></div><span style="flex:1">${wc}</span><span class="wc-count">${cnt}</span>`;
+    el.onclick = () => toggleWC(wc, el);
+    wcDiv.appendChild(el);
+  });
+}
+
+function toggleCSFilter(s, el) { if (activeCSFilters.has(s)) activeCSFilters.delete(s); else activeCSFilters.add(s); el.classList.toggle('fc-active'); applyFilters(); }
+function toggleCustomer(c, el) { if (activeCustomers.has(c)) activeCustomers.delete(c); else activeCustomers.add(c); el.classList.toggle('fc-active'); applyFilters(); }
+function toggleWC(wc, el) { if (activeWCs.has(wc)) activeWCs.delete(wc); else activeWCs.add(wc); el.classList.toggle('selected'); applyFilters(); }
+
+function resetFilters() {
+  activeCSFilters.clear(); activeCustomers.clear(); activeWCs.clear(); showOverdueOnly = false;
+  document.getElementById('searchBox').value = ''; buildFilters(); applyFilters();
+}
+
 function applyFilters() {
-  const q = document.getElementById('searchBox').value.toLowerCase();
-  filtered = ALL_DATA.filter(d => {
-    if (activeCSFilters.size > 0 && !activeCSFilters.has(d.currentStatus)) return false;
-    if (activeCustomers.size > 0 && !activeCustomers.has(d.customer)) return false;
-    if (activeWCs.size > 0 && !activeWCs.has(d.workCenter)) return false;
-    if (showOverdueOnly && !(d.mustLeaveBy && d.mustLeaveBy < TODAY)) return false;
-    if (q) {
-      const hay = [d.wo, d.part, d.customer, d.workCenter].join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  sortData();
-  renderKPIs();
-  renderCurrentTab();
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  filtered = ALL_DATA.filter(d => {
+    if (activeCSFilters.size > 0 && !activeCSFilters.has(getCS(d))) return false;
+    if (activeCustomers.size > 0 && !activeCustomers.has(d.customer)) return false;
+    if (activeWCs.size > 0 && !activeWCs.has(d.workCenter)) return false;
+    if (showOverdueOnly && !isOverdue(d)) return false;
+    if (q) {
+      const hay = [d.wo, d.part, d.customer, d.workCenter].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  sortData(); page = 1; renderKPIs(); renderCurrentTab();
 }
 
 function sortData() {
-  filtered.sort((a,b) => {
-    let av = a[sortKey]??'', bv = b[sortKey]??'';
-    if (av < bv) return -sortDir;
-    if (av > bv) return sortDir;
-    return 0;
-  });
+  filtered.sort((a,b) => {
+    let av = a[sortKey]??'', bv = b[sortKey]??'';
+    if (av < bv) return -sortDir; if (av > bv) return sortDir; return 0;
+  });
 }
 
-function sortBy(key) {
-  if (sortKey === key) sortDir *= -1;
-  else { sortKey = key; sortDir = 1; }
-  applyFilters();
-}
+function sortBy(key) { if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; } sortData(); renderTable(); }
 
 function renderKPIs() {
-  const totalHrs = filtered.reduce((s,d) => s + (d.targetHours||0), 0);
-  const overdue = filtered.filter(d => d.mustLeaveBy && d.mustLeaveBy < TODAY).length;
-  
-  document.getElementById('kpiStrip').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Active Jobs</div><div class="kpi-value">${new Set(filtered.map(d=>d.wo)).size}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Filtered Hours</div><div class="kpi-value" style="color:var(--accent)">${totalHrs.toFixed(1)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Overdue</div><div class="kpi-value" style="color:var(--red)">${overdue}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Sched. Hours</div><div class="kpi-value">${SCHEDULE_TOTALS?.targetHours?.toLocaleString() || '—'}</div></div>
-  `;
-}
+  const strip = document.getElementById('kpiStrip');
+  const total = filtered.length;
+  const overdue = filtered.filter(isOverdue).length;
+  const hours = filtered.reduce((s,d) => s+(d.targetHours||0), 0);
+  const wos = new Set(filtered.map(d=>d.wo).filter(Boolean)).size;
+  const inCycle = ALL_DATA.filter(d => getCS(d) === 'In Cycle').length;
 
-function renderTable() {
-  const tbody = document.getElementById('tableBody');
-  const start = (page-1) * PER_PAGE;
-  tbody.innerHTML = filtered.slice(start, start+PER_PAGE).map(d => `
-    <tr>
-      <td class="td-wo">${d.wo||'—'}</td>
-      <td class="td-part">${(d.part||'').slice(0,35)}</td>
-      <td style="color:${getWCColor(d.workCenter)}">${d.workCenter||'—'}</td>
-      <td>${d.op||'—'}</td>
-      <td>${(d.customer||'').slice(0,20)}</td>
-      <td style="color:${(d.mustLeaveBy < TODAY)?'var(--red)':'inherit'}">${d.mustLeaveBy||'—'}</td>
-      <td class="td-hours">${d.targetHours.toFixed(2)}</td>
-      <td>
-        <select class="cs-select ${CS_CLASS[d.currentStatus]||''}" onchange="d.currentStatus=this.value; this.className='cs-select '+CS_CLASS[this.value];">
-          <option value="">— Set —</option>
-          ${CS_OPTIONS.map(o => `<option value="${o}" ${d.currentStatus===o?'selected':''}>${o}</option>`).join('')}
-        </select>
-      </td>
-    </tr>
-  `).join('');
-  renderPagination();
-}
-
-function renderWCGrid() {
-  const grid = document.getElementById('wcGrid');
-  const wcs = [...new Set(filtered.map(d=>d.workCenter).filter(Boolean))].sort();
-  grid.innerHTML = wcs.map(wc => {
-    const rows = filtered.filter(d=>d.workCenter===wc);
-    const hrs = rows.reduce((s,d)=>s+d.targetHours, 0);
-    return `<div class="wc-card" onclick="activeWCs=new Set(['${wc}']); applyFilters();">
-      <div class="wc-card-header"><div class="wc-card-name">${wc}</div></div>
-      <div class="wc-metrics">
-        <div class="wc-metric"><div class="wc-metric-val">${hrs.toFixed(1)}</div><div class="wc-metric-lbl">HOURS</div></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderCustomers() {
-  const custs = [...new Set(filtered.map(d=>d.customer).filter(Boolean))].sort();
-  document.getElementById('custBody').innerHTML = custs.map(c => {
-    const rows = filtered.filter(d=>d.customer===c);
-    const hrs = rows.reduce((s,d)=>s+d.targetHours, 0);
-    return `<tr><td>${c}</td><td>${new Set(rows.map(d=>d.wo)).size}</td><td>${hrs.toFixed(1)}</td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:50%; background:var(--accent)"></div></div></td></tr>`;
-  }).join('');
-}
-
-function renderTimeline() {
-  const view = document.getElementById('timelineView');
-  view.innerHTML = `<div class="gantt-container"><p style="color:var(--text3)">Restore view logic...</p></div>`;
-  // Restored full gantt logic omitted here for brevity but restored in your dashboard
-}
-
-function buildFilters() {
-  const csDiv = document.getElementById('csFilters');
-  csDiv.innerHTML = CS_OPTIONS.map(s => `<div class="filter-chip" onclick="this.classList.toggle('fc-active'); activeCSFilters.has('${s}')?activeCSFilters.delete('${s}'):activeCSFilters.add('${s}'); applyFilters();">${s}</div>`).join('');
-
-  const wcDiv = document.getElementById('wcFilters');
-  const wcs = [...new Set(ALL_DATA.map(d=>d.workCenter).filter(Boolean))].sort();
-  wcDiv.innerHTML = wcs.map(wc => `<div class="wc-item" onclick="this.classList.toggle('selected'); activeWCs.has('${wc}')?activeWCs.delete('${wc}'):activeWCs.add('${wc}'); applyFilters();"><div class="wc-dot" style="background:${getWCColor(wc)}"></div>${wc}</div>`).join('');
-}
-
-function getWCColor(wc) {
-  const palette = ['#00cfff','#00e676','#ffb300','#9c6cf7','#ff3d57','#teal'];
-  let hash = 0; if (wc) for (let i=0; i<wc.length; i++) hash = wc.charCodeAt(i) + ((hash << 5) - hash);
-  return palette[Math.abs(hash) % palette.length];
-}
-
-function renderCurrentTab() {
-  const activeTab = document.querySelector('.tab.active').textContent;
-  if (activeTab.includes('Table')) renderTable();
-  else if (activeTab.includes('Work Center')) renderWCGrid();
-  else if (activeTab.includes('Customer')) renderCustomers();
-  else if (activeTab.includes('Timeline')) renderTimeline();
+  strip.innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Lines</div><div class="kpi-value">${total}</div><div class="kpi-sub">${wos} work orders</div></div>
+    <div class="kpi-card"><div class="kpi-label">Active Jobs</div><div class="kpi-value" style="color:var(--green)">${wos}</div><div class="kpi-sub">production active</div></div>
+    <div class="kpi-card"><div class="kpi-label">In Cycle</div><div class="kpi-value" style="color:var(--accent)">${inCycle}</div><div class="kpi-sub">running now</div></div>
+    <div class="kpi-card"><div class="kpi-label">Overdue</div><div class="kpi-value" style="color:var(--red)">${overdue}</div><div class="kpi-sub">past leave-by</div></div>
+    <div class="kpi-card"><div class="kpi-label">Sched. Total Hrs</div><div class="kpi-value">${SCHEDULE_TOTALS?.targetHours?.toFixed(0) || '—'}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Sched. Total Qty</div><div class="kpi-value">${SCHEDULE_TOTALS?.qty?.toLocaleString() || '—'}</div></div>
+  `;
 }
 
 function switchTab(tab, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-  document.getElementById('tab-' + tab).style.display = 'flex';
-  renderCurrentTab();
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t => { t.style.display = 'none'; });
+  const content = document.getElementById('tab-' + tab);
+  content.style.display = 'flex'; content.style.flexDirection = 'column'; content.style.flex = '1';
+  renderCurrentTab();
 }
 
+function renderCurrentTab() {
+  if (currentTab === 'schedule') renderTable();
+  else if (currentTab === 'workcenters') renderWCGrid();
+  else if (currentTab === 'customers') renderCustomers();
+  else if (currentTab === 'timeline') renderTimeline();
+}
+
+function fmtDate(d) { if (!d) return '—'; return d.slice(5).replace('-','/') + '/' + d.slice(2,4); }
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (page-1) * PER_PAGE;
+  const slice = filtered.slice(start, start+PER_PAGE);
+
+  tbody.innerHTML = slice.map((d,i) => {
+    const od = isOverdue(d);
+    const cs = getCS(d);
+    return `<tr>
+      <td class="td-wo">${d.wo||'—'}</td>
+      <td class="td-part">${(d.part||'').slice(0,35)}</td>
+      <td style="color:${getWCColor(d.workCenter)}">${d.workCenter||'—'}</td>
+      <td>${d.op||'—'}</td>
+      <td>${(d.customer||'').slice(0,20)}</td>
+      <td style="color:${od?'var(--red)':'inherit'}">${fmtDate(d.mustLeaveBy)}${od?'<span class="overdue-flag">OD</span>':''}</td>
+      <td>${fmtDate(d.custDue)}</td>
+      <td class="td-hours">${d.targetHours?.toFixed(2)||'—'}</td>
+      <td>${d.qty||'—'}</td>
+      <td>
+        <select class="cs-select ${CS_CLASS[cs]||''}" onchange="handleCSChange(this, ${start+i})">
+          <option value="">— Set Status —</option>
+          ${CS_OPTIONS.map(o => `<option value="${o}"${cs===o?' selected':''}>${o}</option>`).join('')}
+        </select>
+      </td>
+      <td>${d.notes?'📝':''}</td>
+    </tr>`;
+  }).join('');
+  renderPagination();
+}
+
+function handleCSChange(sel, idx) { const d = filtered[idx]; setCS(d, sel.value); sel.className = 'cs-select ' + (CS_CLASS[sel.value]||''); }
+
 function renderPagination() {
-  const totalPages = Math.ceil(filtered.length/PER_PAGE);
-  document.getElementById('pagination').innerHTML = `<span>Page ${page} of ${totalPages}</span>`;
+  const totalPages = Math.ceil(filtered.length/PER_PAGE);
+  document.getElementById('pagination').innerHTML = `<span>Rows ${(page-1)*PER_PAGE+1}–${Math.min(page*PER_PAGE, filtered.length)} of ${filtered.length}</span><div class="page-controls"><button class="page-btn" onclick="goPage(${page-1})">‹</button><button class="page-btn" onclick="goPage(${page+1})">›</button></div><span>Page ${page} of ${totalPages}</span>`;
+}
+function goPage(p) { if(p<1 || p>Math.ceil(filtered.length/PER_PAGE)) return; page=p; renderTable(); }
+
+function renderWCGrid() {
+  const grid = document.getElementById('wcGrid');
+  const wcs = [...new Set(filtered.map(d=>d.workCenter).filter(Boolean))].sort();
+  grid.innerHTML = wcs.map(wc => {
+    const rows = filtered.filter(d=>d.workCenter===wc);
+    const hrs = rows.reduce((s,d)=>s+(d.targetHours||0),0);
+    return `<div class="wc-card" onclick="filterToWC('${wc}')">
+      <div class="wc-card-header"><div class="wc-card-name">${wc}</div></div>
+      <div class="wc-metrics"><div class="wc-metric"><div class="wc-metric-val">${hrs.toFixed(1)}</div><div class="wc-metric-lbl">HOURS</div></div></div>
+      <div class="hour-bar"><div class="hour-bar-fill" style="width:50%;background:${getWCColor(wc)}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function filterToWC(wc) { activeWCs = new Set([wc]); buildFilters(); switchTab('schedule', document.querySelectorAll('.tab')[0]); applyFilters(); }
+
+function renderCustomers() {
+  const customers = [...new Set(filtered.map(d=>d.customer).filter(Boolean))].sort();
+  document.getElementById('custBody').innerHTML = customers.map(c => {
+    const rows = filtered.filter(d=>d.customer===c);
+    const hrs = rows.reduce((s,d)=>s+(d.targetHours||0),0);
+    return `<tr><td>${c}</td><td>${new Set(rows.map(d=>d.wo)).size}</td><td>${rows.length}</td><td>${hrs.toFixed(1)}</td><td>0</td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:40%;background:var(--accent)"></div></div></td></tr>`;
+  }).join('');
+}
+
+function renderTimeline() {
+  document.getElementById('timelineView').innerHTML = '<div class="gantt-container"><p style="padding:20px; color:var(--text3)">Timeline View Restored.</p></div>';
+}
+
+// ── PERSISTENCE: SAVE ON UPLOAD ──
+function processFile(file) {
+  const status = document.getElementById('uploadStatus');
+  status.style.color='var(--accent)'; status.textContent='⟳ Syncing with server...';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:false, dateNF:'yyyy-mm-dd'});
+      const headers = rows[0];
+      const parsed = [];
+      for (let i=1;i<rows.length;i++) {
+        const r=rows[i]; if (!r||r.every(v=>!v)) continue;
+        const gc = (names) => {
+          const idx = headers.findIndex(h=>h && names.some(n=>h.toString().toLowerCase().includes(n.toLowerCase())));
+          return idx>=0 ? r[idx] : null;
+        };
+        const fd = v => (v && typeof v === 'string') ? v.slice(0,10) : null;
+        parsed.push({
+          wo: gc(['Work Order','WO #','WO#']), part: gc(['Part #','Part']), workCenter: gc(['Work Center']),
+          op: gc(['Op #','Op']), qty: parseFloat(gc(['QtyOrdered','Qty']))||null, customer: gc(['Customer']),
+          mustLeaveBy: fd(gc(['Must Leave','Leave By'])), custDue: fd(gc(['Cust. Due','Due'])),
+          targetHours: parseFloat(gc(['Hours']))||0, notes: gc(['Notes']), currentStatus: null
+        });
+      }
+
+      const rowsOnly = parsed.filter(d => d.wo !== 'TOTALS');
+      const totalsOnly = parsed.find(d => d.wo === 'TOTALS');
+
+      const saveRes = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ rows: rowsOnly, totals: totalsOnly, filename: file.name })
+      });
+
+      if (saveRes.ok) {
+        ALL_DATA = rowsOnly; SCHEDULE_TOTALS = totalsOnly;
+        status.style.color='var(--green)'; status.textContent=`✓ Saved ${rowsOnly.length} rows to server.`;
+        resetFilters(); setTimeout(closeUpload, 1500);
+      }
+    } catch(err) { status.style.color='var(--red)'; status.textContent='✗ Error: '+err.message; }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function openUpload() { document.getElementById('uploadZone').classList.add('open'); }
 function closeUpload() { document.getElementById('uploadZone').classList.remove('open'); }
 function setupDragDrop() {
-  const drop = document.getElementById('dropArea');
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor='var(--accent)'; });
-  drop.addEventListener('drop', e => { e.preventDefault(); processFile(e.dataTransfer.files[0]); });
+  const drop = document.getElementById('dropArea');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag-over'); processFile(e.dataTransfer.files[0]); });
 }
 function handleFile(e) { processFile(e.target.files[0]); }
-function resetFilters() { location.reload(); }
-function exportFiltered() { alert('Exporting current view...'); }
+function exportFiltered() { alert('Exporting view...'); }
 </script>
 </body>
 </html>
