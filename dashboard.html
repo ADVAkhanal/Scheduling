@@ -685,9 +685,7 @@ async function loadPersistedSchedule() {
 }
 
 function csKey(d) { return `${d.wo}|${d.op}`; }
-
 function getCS(d) { return csStore[csKey(d)] || null; }
-
 function setCS(d, val) {
   csStore[csKey(d)] = val || null;
   renderKPIs();
@@ -713,6 +711,24 @@ function getMachineType(wc) {
 }
 
 function isOverdue(d) { return d.mustLeaveBy && d.mustLeaveBy < TODAY; }
+
+async function handleCSChange(sel, idx) {
+  const d = filtered[idx];
+  const val = sel.value || null;
+  
+  setCS(d, val);
+  sel.className = 'cs-select ' + (val ? (CS_CLASS[val]||'') : '');
+  
+  try {
+    await fetch('/api/save-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wo: d.wo, op: d.op, status: val })
+    });
+  } catch (err) {
+    console.error("Failed to save status:", err);
+  }
+}
 
 // ── BUILD FILTERS ──
 function buildFilters() {
