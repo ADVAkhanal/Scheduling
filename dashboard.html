@@ -656,7 +656,7 @@ let showOverdueOnly = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dateBadge').textContent = 'WEEK OF ' + TODAY;
-    loadPersistedSchedule(); // This calls the function below
+    loadPersistedSchedule(); // This is the new trigger
     setupDragDrop();
 });
 
@@ -668,7 +668,21 @@ async function loadPersistedSchedule() {
         if (savedData && savedData.rows) {
             ALL_DATA = savedData.rows;
             SCHEDULE_TOTALS = savedData.totals;
-
+            
+            // This loop fills the memory so the dropdowns show your saved choices
+            ALL_DATA.forEach(row => {
+                if (row.currentStatus) {
+                    csStore[`${row.wo}|${row.op}`] = row.currentStatus;
+                }
+            });
+            console.log("Database Sync: Success");
+        } 
+    } catch (err) {
+        console.error("Database Sync: Error", err);
+    }
+    buildFilters();
+    applyFilters();
+}
             // --- CRITICAL FIX: Fill the csStore with existing statuses ---
             ALL_DATA.forEach(row => {
                 if (row.currentStatus) {
@@ -967,11 +981,11 @@ async function handleCSChange(sel, idx) {
   const d = filtered[idx];
   const val = sel.value || null;
   
-  // 1. Update the local data immediately for the UI
+  // Update local view
   setCS(d, val);
   sel.className = 'cs-select ' + (val ? (CS_CLASS[val]||'') : '');
   
-  // 2. Sync this specific change to the server's data.json
+  // Send update to Node.js server
   try {
     await fetch('/api/save-status', {
       method: 'POST',
@@ -982,9 +996,8 @@ async function handleCSChange(sel, idx) {
         status: val
       })
     });
-    console.log(`Status synced for WO ${d.wo}`);
   } catch (err) {
-    console.error("Failed to sync status to server:", err);
+    console.error("Status failed to save to server:", err);
   }
 }
 function renderPagination() {
@@ -1404,7 +1417,7 @@ function processFile(file) {
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'yyyy-mm-dd'});
       const headers = rows[0];
       const parsed = [];
-      
+
       for (let i=1; i<rows.length; i++) {
         const r = rows[i];
         if (!r || r.every(v => !v)) continue;
@@ -1440,19 +1453,12 @@ function processFile(file) {
         });
       }
 
-      if (parsed.length === 0) { 
-        status.style.color = 'var(--red)'; 
-        status.textContent = '✗ No valid data found.'; 
-        return; 
-      }
-
-      // Update Local Data exactly like original
       ALL_DATA = parsed.filter(d => d.wo !== 'TOTALS');
       const newTotals = parsed.find(d => d.wo === 'TOTALS');
       if (newTotals) SCHEDULE_TOTALS = newTotals;
 
-      // SAVE TO SERVER SO IT STAYS ON REFRESH
-      status.textContent = '💾 Saving to shop database...';
+      // Save the new Excel data to the server
+      status.textContent = '💾 Saving to shop floor database...';
       const saveResponse = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1465,17 +1471,11 @@ function processFile(file) {
 
       if (saveResponse.ok) {
         filtered = [...ALL_DATA];
-        activeCSFilters = new Set(); 
-        activeCustomers = new Set(); 
-        activeWCs = new Set(); 
-        showOverdueOnly = false;
-
-        // Rebuild UI without stripping
+        // Rebuild filters to include any new Work Centers or Customers from the Excel
         document.getElementById('csFilters').innerHTML = '';
         document.getElementById('customerFilters').innerHTML = '';
         document.getElementById('wcFilters').innerHTML = '';
         document.getElementById('overdueFilter').innerHTML = '';
-        
         buildFilters();
         applyFilters();
 
