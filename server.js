@@ -8,11 +8,10 @@ const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server });
 
-const DATA_FILE     = path.join(__dirname, 'data.json');
-const CAPACITY_FILE = path.join(__dirname, 'capacity_data.json');
-const PORT          = process.env.PORT || 3000;
+const DATA_FILE = path.join(__dirname, 'data.json');
+const PORT      = process.env.PORT || 3000;
 
-// ── Load / save helpers ───────────────────────────────────────────
+// ── Load / save data ──────────────────────────────────────────────
 function loadData() {
   try {
     if (fs.existsSync(DATA_FILE)) return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -25,18 +24,6 @@ function saveData(data) {
   catch(e) { console.error('Error saving data:', e.message); }
 }
 
-function loadCapacity() {
-  try {
-    if (fs.existsSync(CAPACITY_FILE)) return JSON.parse(fs.readFileSync(CAPACITY_FILE, 'utf8'));
-  } catch(e) { console.error('Error loading capacity data:', e.message); }
-  return null; // null = no saved data yet, dashboard uses its built-in defaults
-}
-
-function saveCapacity(data) {
-  try { fs.writeFileSync(CAPACITY_FILE, JSON.stringify(data, null, 2)); }
-  catch(e) { console.error('Error saving capacity data:', e.message); }
-}
-
 let db = loadData();
 
 // ── Broadcast to all connected clients ───────────────────────────
@@ -47,49 +34,19 @@ function broadcast(msg) {
   });
 }
 
-// ── Middleware ────────────────────────────────────────────────────
-app.use(express.json({ limit: '50mb' })); // capacity data can be large
-
 // ── HTTP: serve the dashboard ─────────────────────────────────────
+app.use(express.json());
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// ── Capacity data API (persistent across refreshes) ───────────────
-// GET: returns saved capacity data, or null if none uploaded yet
-app.get('/api/capacity', (req, res) => {
-  const data = loadCapacity();
-  res.json(data); // null tells the dashboard to use its hardcoded defaults
-});
-
-// POST: saves new capacity data sent from the dashboard after upload
-app.post('/api/capacity', (req, res) => {
-  const { avail, loaded } = req.body;
-  if (!avail || !loaded) return res.status(400).json({ error: 'Missing avail or loaded fields' });
-  saveCapacity({ avail, loaded });
-  console.log(`[${ts()}] Capacity data saved — ${Object.keys(avail).length} WCs (avail), ${Object.keys(loaded).length} WCs (loaded)`);
-  // Broadcast to all other connected clients so their dashboards also update live
-  broadcast({ type: 'capacity_update', avail, loaded });
-  res.json({ ok: true });
-});
-
-// DELETE: clears saved capacity data and reverts to built-in defaults
-app.delete('/api/capacity', (req, res) => {
-  try {
-    if (fs.existsSync(CAPACITY_FILE)) fs.unlinkSync(CAPACITY_FILE);
-    broadcast({ type: 'capacity_reset' });
-    console.log(`[${ts()}] Capacity data reset to defaults`);
-  } catch(e) { /* ignore */ }
-  res.json({ ok: true });
-});
-
-// REST endpoint for NPI work order data (existing)
+// REST endpoints (fallback for non-WS clients)
 app.get('/api/data', (req, res) => res.json(db));
 
-// ── WebSocket: handle NPI work order mutations ────────────────────
+// ── WebSocket: handle all mutations ──────────────────────────────
 wss.on('connection', (ws, req) => {
   const ip = req.socket.remoteAddress;
-  console.log(`[${ts()}] Client connected: ${ip} | Total: ${wss.clients.size}`);
+  console.log(`[${new Date().toLocaleTimeString()}] Client connected: ${ip} | Total: ${wss.clients.size}`);
 
-  // Send current WO data to newly connected client
+  // Send current data to newly connected client
   ws.send(JSON.stringify({ type: 'init', data: db }));
 
   ws.on('message', (raw) => {
@@ -148,11 +105,11 @@ function ts()  { return new Date().toLocaleTimeString(); }
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');
-  console.log('║   ADVANCED MACHINING CAPACITY DASHBOARD      ║');
+  console.log('║      NPI LIVE DASHBOARD — SERVER RUNNING     ║');
   console.log('╠══════════════════════════════════════════════╣');
   console.log(`║  Local:    http://localhost:${PORT}              ║`);
   console.log(`║  Network:  http://<YOUR-IP>:${PORT}              ║`);
-  console.log('║  Data:     capacity_data.json (persisted)    ║');
+  console.log('║  Run cloudflared for public URL              ║');
   console.log('╚══════════════════════════════════════════════╝');
   console.log('');
 });
