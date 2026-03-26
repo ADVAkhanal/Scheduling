@@ -121,7 +121,44 @@ wss.on('connection', (ws, req) => {
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function ts()  { return new Date().toLocaleTimeString(); }
+// New endpoint to save manual dropdown changes
+app.post('/api/save-status', (req, res) => {
+  const { wo, op, status } = req.body;
+  
+  // Load existing manual changes
+  let manualData = {};
+  const STATUS_FILE = path.join(__dirname, 'manual_statuses.json');
+  
+  if (fs.existsSync(STATUS_FILE)) {
+    manualData = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
+  }
+  
+  // Save the status using the "WO|OP" key
+  manualData[`${wo}|${op}`] = status;
+  
+  fs.writeFileSync(STATUS_FILE, JSON.stringify(manualData, null, 2));
+  res.json({ ok: true });
+});
 
+// Update the GET schedule endpoint to merge manual statuses
+app.get('/api/schedule', (req, res) => {
+  const schedule = loadSchedule();
+  const STATUS_FILE = path.join(__dirname, 'manual_statuses.json');
+  
+  if (schedule && fs.existsSync(STATUS_FILE)) {
+    const manualStatuses = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
+    // Apply saved statuses back to the schedule rows
+    schedule.rows = schedule.rows.map(row => {
+      const key = `${row.wo}|${row.op}`;
+      if (manualStatuses[key]) {
+        // This ensures the dropdown stays selected on refresh
+        csStore[key] = manualStatuses[key]; 
+      }
+      return row;
+    });
+  }
+  res.json(schedule);
+});
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');
