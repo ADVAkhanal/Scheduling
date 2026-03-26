@@ -730,7 +730,10 @@ function applyFilters() {
     if (activeCSFilters.size > 0 && !activeCSFilters.has(getCS(d))) return false;
     if (activeWCs.size > 0 && !activeWCs.has(d.workCenter)) return false;
     if (showOverdueOnly && !isOverdue(d)) return false;
-    if (q && !([d.wo, d.part, d.customer, d.workCenter].join(' ').toLowerCase().includes(q))) return false;
+    if (q) {
+      const hay = [d.wo, d.part, d.customer, d.workCenter].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   });
   sortData(); renderKPIs(); renderCurrentTab();
@@ -764,8 +767,6 @@ function renderCurrentTab() {
   else if (currentTab === 'timeline') renderTimeline();
 }
 
-function fmtDate(d) { if (!d) return '—'; return d.toString().slice(0,10); }
-
 function renderTable() {
   const tbody = document.getElementById('tableBody');
   const start = (page-1) * PER_PAGE;
@@ -781,7 +782,7 @@ function renderTable() {
       <td>${d.customer||'—'}</td>
       <td style="color:${isOverdue(d)?'var(--red)':'inherit'}">${fmtDate(d.mustLeaveBy)}</td>
       <td>${fmtDate(d.custDue)}</td>
-      <td class="td-hours">${d.targetHours||0}</td>
+      <td class="td-hours">${d.targetHours!=null?d.targetHours.toFixed(2):'—'}</td>
       <td>${d.qty||0}</td>
       <td><select class="cs-select ${csClass}" onchange="handleCSChange(this, ${start+i})">${optsHtml}</select></td>
       <td>${d.notes?'📝':''}</td>
@@ -794,6 +795,7 @@ function renderPagination() {
   const tp = Math.ceil(filtered.length/PER_PAGE);
   document.getElementById('pagination').innerHTML = `<span>Page ${page} of ${tp}</span><div class="page-controls"><button onclick="goPage(${page-1})">‹</button><button onclick="goPage(${page+1})">›</button></div>`;
 }
+
 function goPage(p) { if (p>=1 && p<=Math.ceil(filtered.length/PER_PAGE)) { page=p; renderTable(); } }
 
 function renderWCGrid() {
@@ -803,9 +805,6 @@ function renderWCGrid() {
     const rows = filtered.filter(d=>d.workCenter===wc);
     return `<div class="wc-card">
       <div class="wc-card-header"><div class="wc-card-name">${wc}</div></div>
-      <div class="wc-metrics">
-        <div class="wc-metric"><div class="wc-metric-val">${new Set(rows.map(d=>d.wo)).size}</div><div class="wc-metric-lbl">JOBS</div></div>
-      </div>
       <div class="wc-bar-label"><span>${rows.reduce((s,d)=>s+(d.targetHours||0),0).toFixed(0)} hrs</span></div>
     </div>`;
   }).join('');
@@ -829,8 +828,7 @@ async function processFile(file) {
   reader.onload = async (e) => {
     const data = new Uint8Array(e.target.result);
     const wb = XLSX.read(data, {type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(ws);
+    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
     ALL_DATA = json.map(r => ({ 
         wo: r['Work Order']||r['WO #']||r['WO#'], 
         part: r['Part #']||r['Part'], 
@@ -842,11 +840,7 @@ async function processFile(file) {
         custDue: r['Due'], 
         status: 'Active' 
     }));
-    await fetch('/api/schedule', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ rows: ALL_DATA }) 
-    });
+    await fetch('/api/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: ALL_DATA }) });
     location.reload();
   };
   reader.readAsArrayBuffer(file);
@@ -856,6 +850,13 @@ function exportFiltered() {
   const ws = XLSX.utils.json_to_sheet(filtered);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Export");
   XLSX.writeFile(wb, "ShopFloor_Export.xlsx");
+}
+
+function fmtDate(d) { if (!d) return '—'; return d.toString().slice(0,10); }
+
+function renderTimeline() {
+  const view = document.getElementById('timelineView');
+  view.innerHTML = '<div style="padding:20px; color:var(--text3)">Timeline View Ready.</div>';
 }
 </script>
 </body>
