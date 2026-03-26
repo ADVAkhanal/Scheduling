@@ -60,15 +60,28 @@ app.get('/api/schedule', (req, res) => {
 });
 
 // POST: save uploaded schedule from dashboard
-app.post('/api/schedule', (req, res) => {
-  const { rows, totals, filename, loadedAt } = req.body;
-  if (!rows || !Array.isArray(rows))
-    return res.status(400).json({ error: 'Missing or invalid rows array' });
-  const payload = { rows, totals: totals || null, filename: filename || 'unknown', loadedAt: loadedAt || new Date().toISOString() };
-  saveSchedule(payload);
-  console.log(`[${ts()}] Schedule saved — ${rows.length} rows from "${filename}"`);
-  broadcast({ type: 'schedule_update', ...payload });
-  res.json({ ok: true });
+app.post('/api/save-status', (req, res) => {
+  const { wo, op, status } = req.body;
+  const SCHEDULE_FILE = path.join(__dirname, 'schedule_data.json');
+
+  if (fs.existsSync(SCHEDULE_FILE)) {
+    let schedule = JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8'));
+    
+    // Find the specific row and update its status
+    schedule.rows = schedule.rows.map(row => {
+      if (row.wo === wo && row.op === op) {
+        return { ...row, currentStatus: status };
+      }
+      return row;
+    });
+
+    // Save the updated schedule back to the file
+    fs.writeFileSync(SCHEDULE_FILE, JSON.stringify(schedule, null, 2));
+    console.log(`[Status Save] WO: ${wo} OP: ${op} set to ${status}`);
+    res.json({ ok: true });
+  } else {
+    res.status(404).json({ error: 'Schedule file not found' });
+  }
 });
 
 // DELETE: revert to hardcoded data
