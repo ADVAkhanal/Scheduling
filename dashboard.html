@@ -1379,136 +1379,89 @@ function processFile(file) {
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'yyyy-mm-dd'});
       const headers = rows[0];
       const parsed = [];
-
-      for (let i=1; i<rows.length; i++) {
-        const r=rows[i];
-        if (!r || r.every(v=>!v)) continue;
-        const gc = (names) => {
-          for (const n of names) {
-            const idx = headers.findIndex(h=>h && h.toString().toLowerCase().includes(n.toLowerCase()));
-            if (idx>=0) return r[idx]||null;
-          }
-          return null;
-        };
-        const fd = v => {
-          if (!v) return null;
-          if (typeof v==='string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0,10);
-          const d=new Date(v); if (!isNaN(d)) return d.toISOString().slice(0,10);
-          return null;
-        };
-        parsed.push({
-          wo: gc(['Work Order','WO #','WO#']),
-          part: gc(['Part #','Part']),
-          workCenter: gc(['Work Center']),
-          op: gc(['Op #','Op']),
-          qty: parseFloat(gc(['QtyOrdered','Qty']))||null,
-          customer: gc(['Customer']),
-          mustLeaveBy: fd(gc(['Must Leave','Leave By'])),
-          custDue: fd(gc(['Cust. Due','Due'])),
-          status: 'Active',
-          setupTime: parseFloat(gc(['Set-up','Setup']))||null,
-          complete: gc(['Complete'])==='true'||gc(['Complete'])===true,
-          bomStatus: gc(['BOM']),
-          targetHours: parseFloat(gc(['Hours:Current','Target','Hours']))||null,
-          notes: gc(['Notes']),
-          currentStatus: null
-        });
-      }
-
-      // Update Local Data
-      ALL_DATA = parsed.filter(d => d.wo !== 'TOTALS');
-      const newTotals = parsed.find(d => d.wo === 'TOTALS');
       
-      // SEND TO SERVER (THIS IS WHAT MAKES IT STAY)
-      status.textContent = '💾 Saving to shop floor database...';
-      const saveResponse = await fetch('/api/schedule', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              rows: ALL_DATA,
-              totals: newTotals || null,
-              filename: file.name
-          })
-      });
-
-      if (saveResponse.ok) {
-          SCHEDULE_TOTALS = newTotals;
-          filtered = [...ALL_DATA];
-          resetFilters(); 
-          status.style.color='var(--green)';
-          status.textContent=`✓ Upload successful. Weekly update saved.`;
-          setTimeout(closeUpload, 1600);
-      }
-    } catch(err) { 
-      status.style.color='var(--red)'; 
-      status.textContent='✗ Error: '+err.message; 
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, {type:'array', cellDates:true});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'yyyy-mm-dd'});
-      const headers = rows[0];
-      const parsed = [];
-      for (let i=1;i<rows.length;i++) {
-        const r=rows[i];
-        if (!r||r.every(v=>!v)) continue;
+      for (let i=1; i<rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.every(v => !v)) continue;
         const gc = (names) => {
           for (const n of names) {
-            const idx = headers.findIndex(h=>h&&h.toString().toLowerCase().includes(n.toLowerCase()));
-            if (idx>=0) return r[idx]||null;
+            const idx = headers.findIndex(h => h && h.toString().toLowerCase().includes(n.toLowerCase()));
+            if (idx >= 0) return r[idx] || null;
           }
           return null;
         };
         const fd = v => {
           if (!v) return null;
-          if (typeof v==='string'&&v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0,10);
-          const d=new Date(v); if (!isNaN(d)) return d.toISOString().slice(0,10);
+          if (typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0, 10);
+          const d = new Date(v); if (!isNaN(d)) return d.toISOString().slice(0, 10);
           return null;
         };
         parsed.push({
-          wo: gc(['Work Order','WO #','WO#']),
-          part: gc(['Part #','Part']),
+          wo: gc(['Work Order', 'WO #', 'WO#']),
+          part: gc(['Part #', 'Part']),
           workCenter: gc(['Work Center']),
-          op: gc(['Op #','Op']),
-          qty: parseFloat(gc(['QtyOrdered','Qty']))||null,
+          op: gc(['Op #', 'Op']),
+          qty: parseFloat(gc(['QtyOrdered', 'Qty'])) || null,
           customer: gc(['Customer']),
-          mustLeaveBy: fd(gc(['Must Leave','Leave By'])),
-          custDue: fd(gc(['Cust. Due','Due'])),
+          mustLeaveBy: fd(gc(['Must Leave', 'Leave By'])),
+          custDue: fd(gc(['Cust. Due', 'Due'])),
           status: 'Active',
-          setupTime: parseFloat(gc(['Set-up','Setup']))||null,
-          complete: gc(['Complete'])==='true'||gc(['Complete'])===true,
+          setupTime: parseFloat(gc(['Set-up', 'Setup'])) || null,
+          complete: gc(['Complete']) === 'true' || gc(['Complete']) === true,
           bomStatus: gc(['BOM']),
-          targetHours: parseFloat(gc(['Hours:Current','Target','Hours']))||null,
+          targetHours: parseFloat(gc(['Hours:Current', 'Target', 'Hours'])) || null,
           notes: gc(['Notes']),
           currentStatus: null
         });
       }
-      if (parsed.length===0) { status.style.color='var(--red)'; status.textContent='✗ No valid data found. Check column headers.'; return; }
 
+      if (parsed.length === 0) { 
+        status.style.color = 'var(--red)'; 
+        status.textContent = '✗ No valid data found.'; 
+        return; 
+      }
+
+      // Update Local Data exactly like original
       ALL_DATA = parsed.filter(d => d.wo !== 'TOTALS');
       const newTotals = parsed.find(d => d.wo === 'TOTALS');
       if (newTotals) SCHEDULE_TOTALS = newTotals;
-      filtered = [...ALL_DATA];
-      activeCSFilters=new Set(); activeCustomers=new Set(); activeWCs=new Set(); showOverdueOnly=false;
 
-      document.getElementById('csFilters').innerHTML='';
-      document.getElementById('customerFilters').innerHTML='';
-      document.getElementById('wcFilters').innerHTML='';
-      document.getElementById('overdueFilter').innerHTML='';
-      buildFilters();
-      applyFilters();
+      // SAVE TO SERVER SO IT STAYS ON REFRESH
+      status.textContent = '💾 Saving to shop database...';
+      const saveResponse = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: ALL_DATA,
+          totals: SCHEDULE_TOTALS,
+          filename: file.name
+        })
+      });
 
-      status.style.color='var(--green)';
-      status.textContent=`✓ Loaded ${parsed.length} rows from ${file.name} — all Active`;
-      setTimeout(closeUpload, 1600);
-    } catch(err) { status.style.color='var(--red)'; status.textContent='✗ Error: '+err.message; }
+      if (saveResponse.ok) {
+        filtered = [...ALL_DATA];
+        activeCSFilters = new Set(); 
+        activeCustomers = new Set(); 
+        activeWCs = new Set(); 
+        showOverdueOnly = false;
+
+        // Rebuild UI without stripping
+        document.getElementById('csFilters').innerHTML = '';
+        document.getElementById('customerFilters').innerHTML = '';
+        document.getElementById('wcFilters').innerHTML = '';
+        document.getElementById('overdueFilter').innerHTML = '';
+        
+        buildFilters();
+        applyFilters();
+
+        status.style.color = 'var(--green)';
+        status.textContent = `✓ Upload successful and saved.`;
+        setTimeout(closeUpload, 1600);
+      }
+    } catch (err) {
+      status.style.color = 'var(--red)';
+      status.textContent = '✗ Error: ' + err.message;
+    }
   };
   reader.readAsArrayBuffer(file);
 }
