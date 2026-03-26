@@ -705,4 +705,158 @@ function buildFilters() {
 }
 
 function toggleCSFilter(s, el) {
-  if (activeCSFilters.has(s)) { activeCSFilters.delete(s); el.className = 'filter-chip';
+  if (activeCSFilters.has(s)) { activeCSFilters.delete(s); el.className = 'filter-chip'; }
+  else { activeCSFilters.add(s); el.className = 'filter-chip fc-active'; }
+  applyFilters();
+}
+
+function toggleWC(wc, el) {
+  if (activeWCs.has(wc)) { activeWCs.delete(wc); el.className = 'wc-item'; }
+  else { activeWCs.add(wc); el.className = 'wc-item selected'; }
+  applyFilters();
+}
+
+function resetFilters() {
+  activeCSFilters = new Set(); activeCustomers = new Set(); activeWCs = new Set(); showOverdueOnly = false;
+  document.getElementById('searchBox').value = '';
+  document.querySelectorAll('.filter-chip').forEach(el => el.className = 'filter-chip');
+  document.querySelectorAll('.wc-item').forEach(el => el.className = 'wc-item');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  filtered = ALL_DATA.filter(d => {
+    if (activeCSFilters.size > 0 && !activeCSFilters.has(getCS(d))) return false;
+    if (activeWCs.size > 0 && !activeWCs.has(d.workCenter)) return false;
+    if (showOverdueOnly && !isOverdue(d)) return false;
+    if (q && !([d.wo, d.part, d.customer, d.workCenter].join(' ').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  sortData(); renderKPIs(); renderCurrentTab();
+}
+
+function sortData() { filtered.sort((a,b) => { let av = a[sortKey]??'', bv = b[sortKey]??''; if (av < bv) return -sortDir; if (av > bv) return sortDir; return 0; }); }
+function sortBy(key) { if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; } sortData(); renderTable(); }
+
+function renderKPIs() {
+  const strip = document.getElementById('kpiStrip');
+  const inCycle = ALL_DATA.filter(d => getCS(d) === 'In Cycle').length;
+  strip.innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Lines</div><div class="kpi-value">${filtered.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">In Cycle</div><div class="kpi-value" style="color:var(--accent)">${inCycle}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Overdue</div><div class="kpi-value" style="color:var(--red)">${filtered.filter(isOverdue).length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Target Hrs</div><div class="kpi-value">${SCHEDULE_TOTALS ? Math.round(SCHEDULE_TOTALS.targetHours) : 0}</div></div>
+  `;
+}
+
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t => { t.style.display = 'none'; });
+  document.getElementById('tab-' + tab).style.display = 'flex';
+  renderCurrentTab();
+}
+
+function renderCurrentTab() {
+  if (currentTab === 'schedule') renderTable();
+  else if (currentTab === 'workcenters') renderWCGrid();
+  else if (currentTab === 'timeline') renderTimeline();
+}
+
+function fmtDate(d) { if (!d) return '—'; return d.toString().slice(0,10); }
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (page-1) * PER_PAGE;
+  tbody.innerHTML = filtered.slice(start, start+PER_PAGE).map((d,i) => {
+    const cs = getCS(d);
+    const csClass = cs ? (CS_CLASS[cs]||'') : '';
+    const optsHtml = `<option value="">— Set Status —</option>` + CS_OPTIONS.map(o => `<option value="${o}"${cs===o?' selected':''}>${o}</option>`).join('');
+    return `<tr>
+      <td class="td-wo">${d.wo||'—'}</td>
+      <td title="${d.part}">${(d.part||'').slice(0,35)}</td>
+      <td style="color:${getWCColor(d.workCenter)}">${d.workCenter||'—'}</td>
+      <td>${d.op||'—'}</td>
+      <td>${d.customer||'—'}</td>
+      <td style="color:${isOverdue(d)?'var(--red)':'inherit'}">${fmtDate(d.mustLeaveBy)}</td>
+      <td>${fmtDate(d.custDue)}</td>
+      <td class="td-hours">${d.targetHours||0}</td>
+      <td>${d.qty||0}</td>
+      <td><select class="cs-select ${csClass}" onchange="handleCSChange(this, ${start+i})">${optsHtml}</select></td>
+      <td>${d.notes?'📝':''}</td>
+    </tr>`;
+  }).join('');
+  renderPagination();
+}
+
+function renderPagination() {
+  const tp = Math.ceil(filtered.length/PER_PAGE);
+  document.getElementById('pagination').innerHTML = `<span>Page ${page} of ${tp}</span><div class="page-controls"><button onclick="goPage(${page-1})">‹</button><button onclick="goPage(${page+1})">›</button></div>`;
+}
+function goPage(p) { if (p>=1 && p<=Math.ceil(filtered.length/PER_PAGE)) { page=p; renderTable(); } }
+
+function renderWCGrid() {
+  const grid = document.getElementById('wcGrid');
+  const wcs = [...new Set(filtered.map(d=>d.workCenter).filter(Boolean))].sort();
+  grid.innerHTML = wcs.map(wc => {
+    const rows = filtered.filter(d=>d.workCenter===wc);
+    return `<div class="wc-card">
+      <div class="wc-card-header"><div class="wc-card-name">${wc}</div></div>
+      <div class="wc-metrics">
+        <div class="wc-metric"><div class="wc-metric-val">${new Set(rows.map(d=>d.wo)).size}</div><div class="wc-metric-lbl">JOBS</div></div>
+      </div>
+      <div class="wc-bar-label"><span>${rows.reduce((s,d)=>s+(d.targetHours||0),0).toFixed(0)} hrs</span></div>
+    </div>`;
+  }).join('');
+}
+
+function openUpload() { document.getElementById('uploadZone').classList.add('open'); }
+function closeUpload() { document.getElementById('uploadZone').classList.remove('open'); }
+
+function setupDragDrop() {
+  const drop = document.getElementById('dropArea');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag-over'); processFile(e.dataTransfer.files[0]); });
+}
+
+function handleFile(e) { processFile(e.target.files[0]); }
+
+async function processFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws);
+    ALL_DATA = json.map(r => ({ 
+        wo: r['Work Order']||r['WO #']||r['WO#'], 
+        part: r['Part #']||r['Part'], 
+        workCenter: r['Work Center'], 
+        op: r['Op #']||r['Op'], 
+        targetHours: parseFloat(r['Hours:Current']||r['Hours'])||0, 
+        customer: r['Customer'], 
+        mustLeaveBy: r['Must Leave']||r['Leave By'], 
+        custDue: r['Due'], 
+        status: 'Active' 
+    }));
+    await fetch('/api/schedule', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ rows: ALL_DATA }) 
+    });
+    location.reload();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function exportFiltered() {
+  const ws = XLSX.utils.json_to_sheet(filtered);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Export");
+  XLSX.writeFile(wb, "ShopFloor_Export.xlsx");
+}
+</script>
+</body>
+</html>
