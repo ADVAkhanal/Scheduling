@@ -10,6 +10,7 @@ const wss    = new WebSocket.Server({ server });
 
 const DATA_FILE     = path.join(__dirname, 'data.json');
 const SCHEDULE_FILE = path.join(__dirname, 'schedule_data.json');
+const STATUS_FILE   = path.join(__dirname, 'manual_statuses.json');
 const PORT          = process.env.PORT || 3000;
 
 // ── Load / save helpers ───────────────────────────────────────────
@@ -29,7 +30,7 @@ function loadSchedule() {
   try {
     if (fs.existsSync(SCHEDULE_FILE)) return JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8'));
   } catch(e) { console.error('Error loading schedule:', e.message); }
-  return null; // null = no uploaded schedule; dashboard uses hardcoded data
+  return null; 
 }
 
 function saveSchedule(data) {
@@ -39,7 +40,66 @@ function saveSchedule(data) {
 
 let db = loadData();
 
-// ── Broadcast to all connected clients ───────────────────────────
+// ── Middleware ────────────────────────────────────────────────────
+app.use(express.json({ limit: '100mb' }));
+
+// ── HTTP: serve the dashboard ─────────────────────────────────────
+// Points to dashboard.html as requested
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
+// ── Schedule data API ─────────────────────────────────────────────
+app.get('/api/schedule', (req, res) => {
+  const schedule = loadSchedule();
+  
+  if (schedule && fs.existsSync(STATUS_FILE)) {
+    const manualStatuses = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
+    // Merge saved statuses into the rows so the dashboard sees them
+    schedule.rows = schedule.rows.map(row => {
+      const key = `${row.wo}|${row.op}`;
+      if (manualStatuses[key]) {
+        row.currentStatus = manualStatuses[key];
+      }
+      return row;
+    });
+  }
+  res.json(schedule);
+});
+
+// Save new schedule file (From Upload)
+app.post('/api/schedule', (req, res) => {
+    saveSchedule(req.body);
+    console.log(`[Schedule] New file saved: ${req.body.filename || 'unknown'}`);
+    res.json({ ok: true });
+});
+
+// Save specific row status change
+app.post('/api/save-status', (req, res) => {
+  const { wo, op, status } = req.body;
+  let manualData = {};
+  
+  if (fs.existsSync(STATUS_FILE)) {
+    manualData = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
+  }
+  
+  manualData[`${wo}|${op}`] = status;
+  fs.writeFileSync(STATUS_FILE, JSON.stringify(manualData, null, 2));
+  console.log(`[Status Save] WO: ${wo} OP: ${op} set to ${status}`);
+  res.json({ ok: true });
+});
+
+app.delete('/api/schedule', (req, res) => {
+  try {
+    if (fs.existsSync(SCHEDULE_FILE)) fs.unlinkSync(SCHEDULE_FILE);
+    if (fs.existsSync(STATUS_FILE)) fs.unlinkSync(STATUS_FILE);
+    console.log(`Schedule and statuses reset`);
+  } catch(e) { /* ignore */ }
+  res.json({ ok: true });
+});
+
+// ── NPI work order REST ───────────────────────────────────────────
+app.get('/api/data', (req, res) => res.json(db));
+
+// ── WebSocket: NPI mutations ──────────────────────────────────────
 function broadcast(msg) {
   const payload = JSON.stringify(msg);
   wss.clients.forEach(client => {
@@ -47,71 +107,15 @@ function broadcast(msg) {
   });
 }
 
-// ── Middleware ────────────────────────────────────────────────────
-app.use(express.json({ limit: '100mb' }));
-
-// ── HTTP: serve the dashboard ─────────────────────────────────────
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-
-// ── Schedule data API ─────────────────────────────────────────────
-// GET: returns persisted schedule, or null (dashboard falls back to hardcoded)
-app.get('/api/schedule', (req, res) => {
-  res.json(loadSchedule());
-});
-
-// POST: save uploaded schedule from dashboard
-app.post('/api/save-status', (req, res) => {
-  const { wo, op, status } = req.body;
-  const SCHEDULE_FILE = path.join(__dirname, 'schedule_data.json');
-
-  if (fs.existsSync(SCHEDULE_FILE)) {
-    let schedule = JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8'));
-    
-    // Find the specific row and update its status
-    schedule.rows = schedule.rows.map(row => {
-      if (row.wo === wo && row.op === op) {
-        return { ...row, currentStatus: status };
-      }
-      return row;
-    });
-
-    // Save the updated schedule back to the file
-    fs.writeFileSync(SCHEDULE_FILE, JSON.stringify(schedule, null, 2));
-    console.log(`[Status Save] WO: ${wo} OP: ${op} set to ${status}`);
-    res.json({ ok: true });
-  } else {
-    res.status(404).json({ error: 'Schedule file not found' });
-  }
-});
-
-// DELETE: revert to hardcoded data
-app.delete('/api/schedule', (req, res) => {
-  try {
-    if (fs.existsSync(SCHEDULE_FILE)) fs.unlinkSync(SCHEDULE_FILE);
-    broadcast({ type: 'schedule_reset' });
-    console.log(`[${ts()}] Schedule reset to defaults`);
-  } catch(e) { /* ignore */ }
-  res.json({ ok: true });
-});
-
-// ── NPI work order REST (existing) ───────────────────────────────
-app.get('/api/data', (req, res) => res.json(db));
-
-// ── WebSocket: NPI mutations ──────────────────────────────────────
-wss.on('connection', (ws, req) => {
-  const ip = req.socket.remoteAddress;
-  console.log(`[${ts()}] Client connected: ${ip} | Total: ${wss.clients.size}`);
+wss.on('connection', (ws) => {
   ws.send(JSON.stringify({ type: 'init', data: db }));
-
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
     switch (msg.type) {
       case 'add': {
         const entry = { ...msg.entry, id: msg.entry.id || uid() };
-        db.unshift(entry);
-        saveData(db);
-        broadcast({ type: 'add', entry });
+        db.unshift(entry); saveData(db); broadcast({ type: 'add', entry });
         break;
       }
       case 'update': {
@@ -120,65 +124,15 @@ wss.on('connection', (ws, req) => {
         break;
       }
       case 'delete': {
-        const before = db.length;
-        db = db.filter(r => r.id !== msg.id);
-        if (db.length < before) { saveData(db); broadcast({ type: 'delete', id: msg.id }); }
+        db = db.filter(r => r.id !== msg.id); saveData(db); broadcast({ type: 'delete', id: msg.id });
         break;
       }
-      case 'ping': ws.send(JSON.stringify({ type: 'pong' })); break;
     }
   });
-  ws.on('close', () => console.log(`[${ts()}] Client disconnected | Remaining: ${wss.clients.size}`));
-  ws.on('error', (err) => console.error('WS error:', err.message));
 });
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
-function ts()  { return new Date().toLocaleTimeString(); }
-// New endpoint to save manual dropdown changes
-app.post('/api/save-status', (req, res) => {
-  const { wo, op, status } = req.body;
-  
-  // Load existing manual changes
-  let manualData = {};
-  const STATUS_FILE = path.join(__dirname, 'manual_statuses.json');
-  
-  if (fs.existsSync(STATUS_FILE)) {
-    manualData = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
-  }
-  
-  // Save the status using the "WO|OP" key
-  manualData[`${wo}|${op}`] = status;
-  
-  fs.writeFileSync(STATUS_FILE, JSON.stringify(manualData, null, 2));
-  res.json({ ok: true });
-});
 
-// Update the GET schedule endpoint to merge manual statuses
-app.get('/api/schedule', (req, res) => {
-  const schedule = loadSchedule();
-  const STATUS_FILE = path.join(__dirname, 'manual_statuses.json');
-  
-  if (schedule && fs.existsSync(STATUS_FILE)) {
-    const manualStatuses = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
-    // Apply saved statuses back to the schedule rows
-    schedule.rows = schedule.rows.map(row => {
-      const key = `${row.wo}|${row.op}`;
-      if (manualStatuses[key]) {
-        // This ensures the dropdown stays selected on refresh
-        csStore[key] = manualStatuses[key]; 
-      }
-      return row;
-    });
-  }
-  res.json(schedule);
-});
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('');
-  console.log('╔══════════════════════════════════════════════╗');
-  console.log('║   ADVANCED SHOP FLOOR COMMAND DASHBOARD      ║');
-  console.log('╠══════════════════════════════════════════════╣');
-  console.log(`║  Local:    http://localhost:${PORT}              ║`);
-  console.log('║  Schedule: GET/POST/DELETE /api/schedule     ║');
-  console.log('╚══════════════════════════════════════════════╝');
-  console.log('');
+  console.log(`Server listening on port ${PORT}`);
 });
