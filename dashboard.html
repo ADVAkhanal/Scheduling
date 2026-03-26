@@ -656,7 +656,7 @@ let showOverdueOnly = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dateBadge').textContent = 'WEEK OF ' + TODAY;
-    loadPersistedSchedule(); // This is the new trigger
+    loadPersistedSchedule(); 
     setupDragDrop();
 });
 
@@ -669,7 +669,7 @@ async function loadPersistedSchedule() {
             ALL_DATA = savedData.rows;
             SCHEDULE_TOTALS = savedData.totals;
             
-            // This loop fills the memory so the dropdowns show your saved choices
+            // Fill the memory so the dropdowns show your saved choices
             ALL_DATA.forEach(row => {
                 if (row.currentStatus) {
                     csStore[`${row.wo}|${row.op}`] = row.currentStatus;
@@ -679,23 +679,6 @@ async function loadPersistedSchedule() {
         } 
     } catch (err) {
         console.error("Database Sync: Error", err);
-    }
-    buildFilters();
-    applyFilters();
-}
-            // --- CRITICAL FIX: Fill the csStore with existing statuses ---
-            ALL_DATA.forEach(row => {
-                if (row.currentStatus) {
-                    const key = `${row.wo}|${row.op}`;
-                    csStore[key] = row.currentStatus;
-                }
-            });
-            // -------------------------------------------------------------
-
-            console.log("Dashboard sync: Success");
-        } 
-    } catch (err) {
-        console.error("Dashboard sync: Error", err);
     }
     buildFilters();
     applyFilters();
@@ -981,6 +964,19 @@ async function handleCSChange(sel, idx) {
   const d = filtered[idx];
   const val = sel.value || null;
   
+  setCS(d, val);
+  sel.className = 'cs-select ' + (val ? (CS_CLASS[val]||'') : '');
+  
+  try {
+    await fetch('/api/save-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wo: d.wo, op: d.op, status: val })
+    });
+  } catch (err) {
+    console.error("Failed to save status:", err);
+  }
+}
   // Update local view
   setCS(d, val);
   sel.className = 'cs-select ' + (val ? (CS_CLASS[val]||'') : '');
