@@ -668,12 +668,21 @@ async function loadPersistedSchedule() {
         if (savedData && savedData.rows) {
             ALL_DATA = savedData.rows;
             SCHEDULE_TOTALS = savedData.totals;
+
+            // --- CRITICAL FIX: Fill the csStore with existing statuses ---
+            ALL_DATA.forEach(row => {
+                if (row.currentStatus) {
+                    const key = `${row.wo}|${row.op}`;
+                    csStore[key] = row.currentStatus;
+                }
+            });
+            // -------------------------------------------------------------
+
             console.log("Dashboard sync: Success");
         } 
     } catch (err) {
         console.error("Dashboard sync: Error", err);
     }
-    // Always run these to build the UI regardless of data source
     buildFilters();
     applyFilters();
 }
