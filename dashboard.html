@@ -954,14 +954,30 @@ function renderTable() {
   renderPagination();
 }
 
-function handleCSChange(sel, idx) {
+async function handleCSChange(sel, idx) {
   const d = filtered[idx];
   const val = sel.value || null;
+  
+  // 1. Update the local data immediately for the UI
   setCS(d, val);
   sel.className = 'cs-select ' + (val ? (CS_CLASS[val]||'') : '');
-  renderKPIs();
+  
+  // 2. Sync this specific change to the server's data.json
+  try {
+    await fetch('/api/save-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wo: d.wo,
+        op: d.op,
+        status: val
+      })
+    });
+    console.log(`Status synced for WO ${d.wo}`);
+  } catch (err) {
+    console.error("Failed to sync status to server:", err);
+  }
 }
-
 function renderPagination() {
   const total = filtered.length;
   const totalPages = Math.ceil(total/PER_PAGE);
