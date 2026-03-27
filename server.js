@@ -66,7 +66,8 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // ── HTTP: serve the dashboard ─────────────────────────────────────
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'schedule_dashboard.html')));
+app.get('/mirror', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
 // ── Schedule data API ─────────────────────────────────────────────
 // GET: returns persisted schedule (rows + metadata)
