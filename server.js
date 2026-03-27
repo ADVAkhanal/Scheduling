@@ -1,16 +1,15 @@
-const express   = require('express');
-const http      = require('http');
+const express = require('express');
+const http    = require('http');
 const WebSocket = require('ws');
-const fs        = require('fs');
-const path      = require('path');
+const fs      = require('fs');
+const path    = require('path');
 
 const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server });
 
 const DATA_FILE     = path.join(__dirname, 'data.json');
-const SCHEDULE_FILE = path.join(__dirname, 'schedule_data.json');
-const STATUS_FILE   = path.join(__dirname, 'status_data.json');
+const CAPACITY_FILE = path.join(__dirname, 'capacity_data.json');
 const PORT          = process.env.PORT || 3000;
 
 // ── Load / save helpers ───────────────────────────────────────────
@@ -26,28 +25,16 @@ function saveData(data) {
   catch(e) { console.error('Error saving data:', e.message); }
 }
 
-function loadSchedule() {
+function loadCapacity() {
   try {
-    if (fs.existsSync(SCHEDULE_FILE)) return JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8'));
-  } catch(e) { console.error('Error loading schedule:', e.message); }
-  return null;
+    if (fs.existsSync(CAPACITY_FILE)) return JSON.parse(fs.readFileSync(CAPACITY_FILE, 'utf8'));
+  } catch(e) { console.error('Error loading capacity data:', e.message); }
+  return null; // null = no saved data yet, dashboard uses its built-in defaults
 }
 
-function saveSchedule(data) {
-  try { fs.writeFileSync(SCHEDULE_FILE, JSON.stringify(data)); }
-  catch(e) { console.error('Error saving schedule:', e.message); }
-}
-
-function loadStatus() {
-  try {
-    if (fs.existsSync(STATUS_FILE)) return JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
-  } catch(e) { console.error('Error loading status:', e.message); }
-  return {};
-}
-
-function saveStatus(data) {
-  try { fs.writeFileSync(STATUS_FILE, JSON.stringify(data)); }
-  catch(e) { console.error('Error saving status:', e.message); }
+function saveCapacity(data) {
+  try { fs.writeFileSync(CAPACITY_FILE, JSON.stringify(data, null, 2)); }
+  catch(e) { console.error('Error saving capacity data:', e.message); }
 }
 
 let db = loadData();
@@ -61,112 +48,97 @@ function broadcast(msg) {
 }
 
 // ── Middleware ────────────────────────────────────────────────────
-// Increase limit to 100MB to handle large Excel schedules
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.json({ limit: '50mb' })); // capacity data can be large
 
 // ── HTTP: serve the dashboard ─────────────────────────────────────
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'schedule_dashboard.html')));
-app.get('/mirror', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// ── Schedule data API ─────────────────────────────────────────────
-// GET: returns persisted schedule (rows + metadata)
-app.get('/api/schedule', (req, res) => {
-  const schedule = loadSchedule();
-  if (!schedule) {
-    return res.json(null);
-  }
-  res.json(schedule);
+// ── Capacity data API (persistent across refreshes) ───────────────
+// GET: returns saved capacity data, or null if none uploaded yet
+app.get('/api/capacity', (req, res) => {
+  const data = loadCapacity();
+  res.json(data); // null tells the dashboard to use its hardcoded defaults
 });
 
-// POST: save uploaded schedule from dashboard
-app.post('/api/schedule', (req, res) => {
-  const { rows, filename, loadedAt, rows_count } = req.body;
-  if (!rows || !Array.isArray(rows)) {
-    return res.status(400).json({ error: 'Missing or invalid rows array' });
-  }
-  const payload = {
-    rows,
-    filename: filename || 'schedule.xlsx',
-    loadedAt: loadedAt || new Date().toLocaleString(),
-    rows_count: rows.length
-  };
-  saveSchedule(payload);
-  console.log(`[${ts()}] Schedule saved — ${rows.length} rows from "${filename}"`);
-  // Broadcast lightweight notification (not the full data to avoid WS limits)
-  broadcast({ type: 'schedule_update', filename, loadedAt, rows_count: rows.length });
-  res.json({ ok: true, rows_saved: rows.length });
+// POST: saves new capacity data sent from the dashboard after upload
+app.post('/api/capacity', (req, res) => {
+  const { avail, loaded } = req.body;
+  if (!avail || !loaded) return res.status(400).json({ error: 'Missing avail or loaded fields' });
+  saveCapacity({ avail, loaded });
+  console.log(`[${ts()}] Capacity data saved — ${Object.keys(avail).length} WCs (avail), ${Object.keys(loaded).length} WCs (loaded)`);
+  // Broadcast to all other connected clients so their dashboards also update live
+  broadcast({ type: 'capacity_update', avail, loaded });
+  res.json({ ok: true });
 });
 
-// DELETE: remove schedule file (revert to no data)
-app.delete('/api/schedule', (req, res) => {
+// DELETE: clears saved capacity data and reverts to built-in defaults
+app.delete('/api/capacity', (req, res) => {
   try {
-    if (fs.existsSync(SCHEDULE_FILE)) fs.unlinkSync(SCHEDULE_FILE);
-    broadcast({ type: 'schedule_reset' });
-    console.log(`[${ts()}] Schedule cleared`);
+    if (fs.existsSync(CAPACITY_FILE)) fs.unlinkSync(CAPACITY_FILE);
+    broadcast({ type: 'capacity_reset' });
+    console.log(`[${ts()}] Capacity data reset to defaults`);
   } catch(e) { /* ignore */ }
   res.json({ ok: true });
 });
 
-// ── Row status assignments API ────────────────────────────────────
-// GET: returns persisted { "wo_op": "tagKey", ... } map
-app.get('/api/status', (req, res) => {
-  res.json(loadStatus());
-});
-
-// POST: save full status map from dashboard
-app.post('/api/status', (req, res) => {
-  const data = req.body;
-  if (typeof data !== 'object' || Array.isArray(data)) {
-    return res.status(400).json({ error: 'Expected a key-value object' });
-  }
-  saveStatus(data);
-  res.json({ ok: true });
-});
-
-// DELETE: clear all status assignments
-app.delete('/api/status', (req, res) => {
-  try {
-    if (fs.existsSync(STATUS_FILE)) fs.unlinkSync(STATUS_FILE);
-  } catch(e) { /* ignore */ }
-  res.json({ ok: true });
-});
-
-// ── NPI / misc data REST (existing) ──────────────────────────────
+// REST endpoint for NPI work order data (existing)
 app.get('/api/data', (req, res) => res.json(db));
 
-// ── WebSocket: real-time mutations ────────────────────────────────
+// ── WebSocket: handle NPI work order mutations ────────────────────
 wss.on('connection', (ws, req) => {
   const ip = req.socket.remoteAddress;
   console.log(`[${ts()}] Client connected: ${ip} | Total: ${wss.clients.size}`);
+
+  // Send current WO data to newly connected client
   ws.send(JSON.stringify({ type: 'init', data: db }));
 
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
+
     switch (msg.type) {
+
       case 'add': {
         const entry = { ...msg.entry, id: msg.entry.id || uid() };
         db.unshift(entry);
         saveData(db);
         broadcast({ type: 'add', entry });
+        console.log(`[${ts()}] ADD — WO: ${entry.wo} | Run: ${entry.run}`);
         break;
       }
+
       case 'update': {
         const idx = db.findIndex(r => r.id === msg.entry.id);
-        if (idx !== -1) { db[idx] = msg.entry; saveData(db); broadcast({ type: 'update', entry: msg.entry }); }
+        if (idx !== -1) {
+          db[idx] = msg.entry;
+          saveData(db);
+          broadcast({ type: 'update', entry: msg.entry });
+          console.log(`[${ts()}] UPDATE — WO: ${msg.entry.wo} | Run: ${msg.entry.run}`);
+        }
         break;
       }
+
       case 'delete': {
         const before = db.length;
         db = db.filter(r => r.id !== msg.id);
-        if (db.length < before) { saveData(db); broadcast({ type: 'delete', id: msg.id }); }
+        if (db.length < before) {
+          saveData(db);
+          broadcast({ type: 'delete', id: msg.id });
+          console.log(`[${ts()}] DELETE — id: ${msg.id}`);
+        }
         break;
       }
-      case 'ping': ws.send(JSON.stringify({ type: 'pong' })); break;
+
+      case 'ping':
+        ws.send(JSON.stringify({ type: 'pong' }));
+        break;
     }
   });
-  ws.on('close', () => console.log(`[${ts()}] Client disconnected | Remaining: ${wss.clients.size}`));
+
+  ws.on('close', () => {
+    console.log(`[${ts()}] Client disconnected | Remaining: ${wss.clients.size}`);
+  });
+
   ws.on('error', (err) => console.error('WS error:', err.message));
 });
 
@@ -176,12 +148,11 @@ function ts()  { return new Date().toLocaleTimeString(); }
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');
-  console.log('║   ADVANCED SHOP FLOOR COMMAND DASHBOARD      ║');
+  console.log('║   ADVANCED MACHINING CAPACITY DASHBOARD      ║');
   console.log('╠══════════════════════════════════════════════╣');
   console.log(`║  Local:    http://localhost:${PORT}              ║`);
-  console.log('║  Schedule: GET/POST/DELETE /api/schedule     ║');
-  console.log('║  Status:   GET/POST/DELETE /api/status       ║');
-  console.log('║  Data persists in schedule_data.json         ║');
+  console.log(`║  Network:  http://<YOUR-IP>:${PORT}              ║`);
+  console.log('║  Data:     capacity_data.json (persisted)    ║');
   console.log('╚══════════════════════════════════════════════╝');
   console.log('');
 });
