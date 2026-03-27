@@ -178,7 +178,8 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('║   ADVANCED SHOP FLOOR COMMAND DASHBOARD      ║');
   console.log('╠══════════════════════════════════════════════╣');
   console.log(`║  Local:    http://localhost:${PORT}              ║`);
-  console.log('║  Schedule: GET/POST/DELETE /api/schedule     ║`);
+  console.log('║  Schedule: GET/POST/DELETE /api/schedule     ║');
+  console.log('║  Status:   GET/POST/DELETE /api/status       ║');
   console.log('║  Data persists in schedule_data.json         ║');
   console.log('╚══════════════════════════════════════════════╝');
   console.log('');
