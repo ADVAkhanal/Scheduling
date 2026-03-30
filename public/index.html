@@ -305,6 +305,26 @@ const MONTHS_27=['Jan_27','Feb_27','Mar_27','Apr_27','May_27','Jun_27','Jul_27',
 const ALL_MONTHS=[...MONTHS_26,...MONTHS_27];
 const MONTH_LABELS={Jan_26:'Jan 26',Feb_26:'Feb 26',Mar_26:'Mar 26',Apr_26:'Apr 26',May_26:'May 26',Jun_26:'Jun 26',Jul_26:'Jul 26',Aug_26:'Aug 26',Sep_26:'Sep 26',Oct_26:'Oct 26',Nov_26:'Nov 26',Dec_26:'Dec 26',Jan_27:'Jan 27',Feb_27:'Feb 27',Mar_27:'Mar 27',Apr_27:'Apr 27',May_27:'May 27',Jun_27:'Jun 27',Jul_27:'Jul 27',Aug_27:'Aug 27',Sep_27:'Sep 27',Oct_27:'Oct 27',Nov_27:'Nov 27',Dec_27:'Dec 27'};
 
+// ========================
+// FIX: Parse month key directly from ISO date string (YYYY-MM-DD)
+// Using new Date() with ISO strings treats them as UTC midnight, which shifts
+// the date backward by one day in US timezones (e.g. CDT = UTC-5), causing
+// "2026-04-01" to resolve as March 31 → bucketing hours into the wrong month.
+// Solution: extract year/month directly from the string — no Date constructor needed.
+// ========================
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function dateToMonthKey(dateStr) {
+  if (!dateStr) return null;
+  // dateStr is always "YYYY-MM-DD" from our parser
+  const parts = dateStr.split('-');
+  if (parts.length < 2) return null;
+  const yr = parts[0].slice(2);   // "2026" → "26"
+  const mo = MONTH_NAMES[parseInt(parts[1], 10) - 1]; // "04" → "Apr"
+  if (!mo) return null;
+  return mo + '_' + yr;           // "Apr_26"
+}
+
 function axisClass(a){const m={'5-Axis':'axis-5','5-Axis ':'axis-5','4-Axis':'axis-4','3-Axis':'axis-3','Mill-Turn':'axis-mt','Lathe':'axis-l','Router':'axis-r'};return m[a]||'axis-3';}
 function axisShort(a){const m={'5-Axis':'5AX','5-Axis ':'5AX','4-Axis':'4AX','3-Axis':'3AX','Mill-Turn':'MT','Lathe':'LTH','Router':'RTR'};return m[a]||a;}
 function utilClass(p){if(!p)return '';if(p>100)return 'util-over';if(p>=90)return 'util-high';if(p>=70)return 'util-med';return 'util-low';}
@@ -413,7 +433,7 @@ function renderWOTable(){
   const today=new Date(),soon=new Date(today);soon.setDate(soon.getDate()+14);
   document.getElementById('wo-tbody').innerHTML=page.map(w=>{
     const sc='status-'+(w.Status||'Unknown').replace(/\s/g,'');
-    const ld=w['WO Must Leave By'],dt=ld?new Date(ld):null;
+    const ld=w['WO Must Leave By'],dt=ld?new Date(ld+'T12:00:00'):null;
     const dc=dt&&dt<today?'date-urgent':dt&&dt<=soon?'date-soon':'date-val';
     const pn=(w['Part #']||'').replace(/\(.*\)/,'').trim().slice(0,40);
     const cp=Math.round((w.Complete||0)*100);
@@ -463,8 +483,30 @@ function readWCFile(file){
       const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
       uploadedWC=rows.map(r=>{
-        const ld=r['WO Must Leave By'],cd=r['Cust. Due'];
-        return{'Work Order #':String(r['Work Order #']||''),'Part #':String(r['Part #']||''),'Work Center':String(r['Work Center']||''),QtyOrdered:parseFloat(r['QtyOrdered'])||0,Customer:String(r['Customer']||''),'WO Must Leave By':ld instanceof Date?ld.toISOString().slice(0,10):(ld||''),'Cust. Due':cd instanceof Date?cd.toISOString().slice(0,10):(cd||''),Status:String(r['Status']||'Unknown'),'Set-up Time (Hrs)':parseFloat(r['Set-up Time (Hrs)'])||0,'Hours:Current Target':parseFloat(r['Hours:Current Target'])||0,Complete:parseFloat(r['Complete'])||0};
+        // FIX: Format dates as YYYY-MM-DD strings, never use Date objects for month bucketing
+        const fmtDate = d => {
+          if (!d) return '';
+          if (d instanceof Date) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const day = String(d.getDate()).padStart(2,'0');
+            return `${y}-${m}-${day}`;
+          }
+          return String(d);
+        };
+        return {
+          'Work Order #':String(r['Work Order #']||''),
+          'Part #':String(r['Part #']||''),
+          'Work Center':String(r['Work Center']||''),
+          QtyOrdered:parseFloat(r['QtyOrdered'])||0,
+          Customer:String(r['Customer']||''),
+          'WO Must Leave By':fmtDate(r['WO Must Leave By']),
+          'Cust. Due':fmtDate(r['Cust. Due']),
+          Status:String(r['Status']||'Unknown'),
+          'Set-up Time (Hrs)':parseFloat(r['Set-up Time (Hrs)'])||0,
+          'Hours:Current Target':parseFloat(r['Hours:Current Target'])||0,
+          Complete:parseFloat(r['Complete'])||0
+        };
       }).filter(r=>r['Work Center']&&r['Work Center']!=='null');
       setStatus('status-wc',`✓ ${file.name} (${uploadedWC.length} rows)`,'ok');
     }catch(err){setStatus('status-wc','✗ Error: '+err.message,'err');}
@@ -506,12 +548,12 @@ function reloadData(){
   if(uploadedWC){
     const lm={};
     uploadedWC.forEach(w=>{
-      const wc=w['Work Center'],d=w['WO Must Leave By'];
+      const wc=w['Work Center'];
+      const d=w['WO Must Leave By'];
       if(!d||!wc)return;
-      const dt=new Date(d);if(isNaN(dt))return;
-      const yr=dt.getFullYear().toString().slice(2);
-      const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()];
-      const k=wc+'|'+mo+'_'+yr;
+      // FIX: Use string-based month key extraction — no Date constructor, no timezone shift
+      const k=wc+'|'+dateToMonthKey(d);
+      if(k.includes('null')||k.includes('undefined'))return;
       lm[k]=(lm[k]||0)+(w['Hours:Current Target']||0);
     });
     capData=capData.map(r=>{
