@@ -88,7 +88,6 @@ const upload = multer({
   }
 });
 
-// Jan 26 through Dec 27 — matches your actual Excel file
 const MONTHS_HORIZON = [
   'Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26',
   'Jul 26','Aug 26','Sep 26','Oct 26','Nov 26','Dec 26',
@@ -100,22 +99,15 @@ function parseCap(wb, months) {
   const sn = wb.SheetNames.find(s => s.toLowerCase().includes('raw')) || wb.SheetNames[0];
   const data = XLSX.utils.sheet_to_json(wb.Sheets[sn], { defval: '' });
   if (!data.length) throw new Error('Empty capacity sheet');
-
   const colKeys = Object.keys(data[0]);
-
-  // Find column by stripping spaces and lowercasing
   function findCapCol(month) {
     const target = `Effective Capacity-${month}`.replace(/\s+/g, '').toLowerCase();
     return colKeys.find(k => k.replace(/\s+/g, '').toLowerCase() === target) || null;
   }
-
   return data.filter(r => r['Work Center']).map(r => {
     const wc = String(r['Work Center']).trim();
     const caps = {};
-    months.forEach(m => {
-      const col = findCapCol(m);
-      caps[m] = col ? (parseFloat(r[col]) || 0) : 0;
-    });
+    months.forEach(m => { const col = findCapCol(m); caps[m] = col ? (parseFloat(r[col]) || 0) : 0; });
     return { wc, type: String(r['Type'] || '').trim(), axis: String(r['Axis'] || '').trim(), caps };
   });
 }
@@ -123,8 +115,6 @@ function parseCap(wb, months) {
 function parseLoad(wb, months) {
   const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', cellDates: true });
   if (!data.length) throw new Error('Empty load sheet');
-
-  // Build reverse map: "2026-01" -> "Jan 26"
   const reverseMap = {};
   months.forEach(m => {
     const pts = m.split(' ');
@@ -132,41 +122,31 @@ function parseLoad(wb, months) {
     const mn = new Date(Date.parse(pts[0] + ' 1 2000')).getMonth() + 1;
     reverseMap[`${yr}-${String(mn).padStart(2, '0')}`] = m;
   });
-
-  const loadAgg = {};
-  const wos = [];
-
+  const loadAgg = {}, wos = [];
   data.forEach(r => {
     const st = String(r['Status'] || '').trim();
     if (!['Active', 'Expected'].includes(st)) return;
-
     const wc = String(r['Work Center'] || '').trim();
     const raw = r['WO Must Leave By'];
     if (!wc || !raw) return;
-
     let dt;
     if (raw instanceof Date) dt = raw;
     else if (typeof raw === 'number') { const d = XLSX.SSF.parse_date_code(raw); dt = new Date(d.y, d.m - 1, d.d); }
     else dt = new Date(raw);
     if (!dt || isNaN(dt)) return;
-
     const period = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
     const lbl = reverseMap[period];
     if (!lbl) return;
-
     const setup = parseFloat(r['Set-up Time (Hrs)']) || 0;
     const tgt   = parseFloat(r['Hours:Current Target']) || 0;
     const tot   = setup + tgt;
-
     if (!loadAgg[wc]) loadAgg[wc] = {};
     loadAgg[wc][lbl] = (loadAgg[wc][lbl] || 0) + tot;
-
     const due = r['Cust. Due'];
     let dueStr = '';
     if (due instanceof Date) dueStr = due.toISOString().slice(0, 10);
     else if (typeof due === 'number') { const d2 = XLSX.SSF.parse_date_code(due); dueStr = d2 ? `${d2.y}-${String(d2.m).padStart(2,'0')}-${String(d2.d).padStart(2,'0')}` : ''; }
     else dueStr = String(due || '').slice(0, 10);
-
     wos.push({
       wo: String(r['Work Order #'] || ''), part: String(r['Part #'] || '').slice(0, 70),
       wc, customer: String(r['Customer'] || ''), qty: String(r['QtyOrdered'] || ''),
@@ -174,7 +154,6 @@ function parseLoad(wb, months) {
       setup: Math.round(setup*100)/100, target: Math.round(tgt*100)/100, total: Math.round(tot*100)/100,
     });
   });
-
   return { loadAgg, wos };
 }
 
@@ -184,7 +163,6 @@ async function fetchDatasetById(id) {
   const wcs      = await pool.query('SELECT * FROM mps_workcenters WHERE dataset_id=$1 ORDER BY wc', [id]);
   const wcMonths = await pool.query('SELECT * FROM mps_wc_months WHERE dataset_id=$1', [id]);
   const wos      = await pool.query('SELECT * FROM mps_workorders WHERE dataset_id=$1 ORDER BY must_leave', [id]);
-
   const monthLabels = months.rows.map(m => m.label);
   const wcMap = {};
   wcs.rows.forEach(w => {
@@ -199,7 +177,6 @@ async function fetchDatasetById(id) {
     wc.months[mi].load = +wm.load;
     wc.months[mi].util = wm.cap > 0 ? +wm.load / +wm.cap : null;
   });
-
   return {
     dataset: ds.rows[0], months: monthLabels, wcs: Object.values(wcMap),
     wos: wos.rows.map(w => ({
@@ -220,7 +197,7 @@ app.get('/api/datasets', async (req, res) => {
 // Must be before /:id
 app.get('/api/datasets/latest/data', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id FROM mps_datasets ORDER BY updated_at DESC LIMIT 1');
+    const { rows } = await pool.query('SELECT id FROM mps_datasets ORDER BY created_at ASC LIMIT 1');
     if (!rows.length) return res.json({ dataset: null, months: [], wcs: [], wos: [] });
     res.json(await fetchDatasetById(rows[0].id));
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -235,6 +212,7 @@ app.get('/api/datasets/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// CAPACITY UPLOAD — always reuses the one permanent dataset, never creates duplicates
 app.post('/api/upload/capacity', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const client = await pool.connect();
@@ -244,11 +222,21 @@ app.post('/api/upload/capacity', upload.single('file'), async (req, res) => {
     const months = req.body.months ? JSON.parse(req.body.months) : MONTHS_HORIZON;
     const wcData = parseCap(wb, months);
 
-    const dsRes = await client.query(
-      'INSERT INTO mps_datasets (name, uploaded_by) VALUES ($1,$2) RETURNING id',
-      [req.body.name || 'MPS Dataset', req.body.uploaded_by || 'anonymous']
-    );
-    const datasetId = dsRes.rows[0].id;
+    // Get or create the ONE permanent dataset
+    const existing = await client.query('SELECT id FROM mps_datasets ORDER BY created_at ASC LIMIT 1');
+    let datasetId;
+    if (existing.rows.length) {
+      datasetId = existing.rows[0].id;
+      // Wipe old capacity so it gets replaced fresh (work orders cascade-delete too)
+      await client.query('DELETE FROM mps_months WHERE dataset_id=$1', [datasetId]);
+      await client.query('DELETE FROM mps_workcenters WHERE dataset_id=$1', [datasetId]);
+    } else {
+      const dsRes = await client.query(
+        'INSERT INTO mps_datasets (name, uploaded_by) VALUES ($1,$2) RETURNING id',
+        [req.body.name || 'MPS Dataset', req.body.uploaded_by || 'anonymous']
+      );
+      datasetId = dsRes.rows[0].id;
+    }
 
     for (let i = 0; i < months.length; i++) {
       await client.query(
@@ -256,7 +244,6 @@ app.post('/api/upload/capacity', upload.single('file'), async (req, res) => {
         [datasetId, months[i], i]
       );
     }
-
     for (const wc of wcData) {
       const wcRes = await client.query(
         `INSERT INTO mps_workcenters (dataset_id, wc, type, axis) VALUES ($1,$2,$3,$4)
@@ -283,14 +270,18 @@ app.post('/api/upload/capacity', upload.single('file'), async (req, res) => {
   } finally { client.release(); }
 });
 
+// LOAD UPLOAD — always updates the one permanent dataset
 app.post('/api/upload/load', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const wb        = XLSX.read(req.file.buffer, { type: 'buffer', cellDates: true });
-    const datasetId = parseInt(req.body.dataset_id);
-    if (!datasetId) return res.status(400).json({ error: 'dataset_id required' });
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer', cellDates: true });
+
+    // Always use the one permanent dataset
+    const existing = await client.query('SELECT id FROM mps_datasets ORDER BY created_at ASC LIMIT 1');
+    if (!existing.rows.length) return res.status(400).json({ error: 'Upload Available Hours first' });
+    const datasetId = existing.rows[0].id;
 
     const monthsRes   = await client.query('SELECT * FROM mps_months WHERE dataset_id=$1 ORDER BY month_idx', [datasetId]);
     const monthLabels = monthsRes.rows.map(m => m.label);
@@ -305,7 +296,6 @@ app.post('/api/upload/load', upload.single('file'), async (req, res) => {
          wo.must_leave, wo.cust_due || null, wo.status, wo.setup, wo.target, wo.total]
       );
     }
-
     const wcsRes = await client.query('SELECT id,wc FROM mps_workcenters WHERE dataset_id=$1', [datasetId]);
     for (const wc of wcsRes.rows) {
       for (let i = 0; i < monthLabels.length; i++) {
