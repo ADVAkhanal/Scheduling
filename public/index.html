@@ -1254,71 +1254,6 @@ function renderWO(){
 function goPage(p){woPage=p;renderWO();}
 
 // ════════════════════════════════════════════════════
-// API PERSISTENCE
-// ════════════════════════════════════════════════════
-let APP_DATASET_ID = null;
-
-async function loadFromAPI() {
-  try {
-    const r = await fetch('/api/datasets/latest/data');
-    const data = await r.json();
-    if (data.dataset && data.months.length) {
-      APP_DATASET_ID = data.dataset.id;
-      APP.months = data.months;
-      APP.wcs = data.wcs;
-      APP.wos = data.wos;
-      APP.axes = [...new Set(data.wcs.map(w=>w.axis))];
-      APP.types = [...new Set(data.wcs.map(w=>w.type))];
-      APP.customers = buildCustomers(data.wcs, data.wos, data.months);
-      rebuildAll();
-      if(document.getElementById('up-src')) document.getElementById('up-src').textContent = `DB: ${data.dataset.name}`;
-    }
-  } catch(e) {
-    // offline — use default data
-    console.log('API unavailable, using local data');
-  }
-}
-
-function buildCustomers(wcs, wos, months) {
-  const custMap = {};
-  wos.forEach(w => {
-    if (!custMap[w.customer]) custMap[w.customer] = { customer: w.customer, total: 0, months: months.map(m => ({ label: m, load: 0, wcs: [] })) };
-    custMap[w.customer].total += w.total;
-  });
-  return Object.values(custMap);
-}
-
-async function saveCapToAPI(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('name', 'MPS ' + new Date().getFullYear());
-  if (APP_DATASET_ID) fd.append('dataset_id', APP_DATASET_ID);
-  try {
-    const r = await fetch('/api/upload/capacity', { method: 'POST', body: fd });
-    const data = await r.json();
-    if (data.success) {
-      APP_DATASET_ID = data.dataset_id;
-      showUpRes('cap', true, `${data.wcs} work centers saved to DB`);
-    } else {
-      showUpRes('cap', false, data.error || 'Save failed');
-    }
-  } catch(e) { /* offline — already parsed locally */ }
-}
-
-async function saveLoadToAPI(file) {
-  if (!APP_DATASET_ID) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('dataset_id', APP_DATASET_ID);
-  try {
-    const r = await fetch('/api/upload/load', { method: 'POST', body: fd });
-    const data = await r.json();
-    if (data.success) showUpRes('load', true, `${data.wos} work orders saved to DB`);
-    else showUpRes('load', false, data.error || 'Save failed');
-  } catch(e) { /* offline */ }
-}
-
-// ════════════════════════════════════════════════════
 // FILE UPLOAD
 // ════════════════════════════════════════════════════
 function dzOver(e,id){e.preventDefault();document.getElementById(id).classList.add('on');}
@@ -1331,8 +1266,8 @@ function processFile(file,type){
   r.onload=ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
-      if(type==='cap'){parseCap(wb); saveCapToAPI(file);}
-      else{parseLoad(wb); saveLoadToAPI(file);}
+      if(type==='cap')parseCap(wb);
+      else parseLoad(wb);
       rebuildAll();
       document.getElementById('up-status').textContent='✓ Updated';
       setTimeout(()=>document.getElementById('up-status').textContent='',3000);
@@ -1428,7 +1363,6 @@ function rebuildAll(){
 // INIT
 // ════════════════════════════════════════════════════
 rebuildAll();
-loadFromAPI();
 </script>
 </body>
 </html>
